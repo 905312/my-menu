@@ -14,7 +14,6 @@ let cart = {};
 let currentCategory = "🍕 Пицца";
 let searchTerm = "";
 
-// ПОЛНЫЙ СПИСОК (для поиска и вкладок)
 const FOOD_DATA = {
     "🍕 Пицца": [
         { id: "p1", name: "Пепперони", price: 519, desc: "Пикантная колбаса, моцарелла" },
@@ -29,7 +28,7 @@ const FOOD_DATA = {
         { id: "b1", name: "Тройной Чизбургер", price: 249, desc: "3 котлеты, 3 сыра" },
         { id: "b2", name: "Двойной Биг Спешиал", price: 460, desc: "Огромная говяжья котлета" },
         { id: "b5", name: "Двойной Биг Хит", price: 303, desc: "Тот самый легендарный соус" },
-        { id: "b8", name: "Двойной Гранд", price: 327, desc: "Классика в двойном размере" },
+        { id: "b8", name: "Двойной Гранд", price: 327, desc: "Много мяса, 282г" },
         { id: "b14", name: "Цезарь Ролл", price: 230, desc: "Курица в пшеничной лепешке" }
     ],
     "🥤 Напитки": [
@@ -41,7 +40,6 @@ const FOOD_DATA = {
     ]
 };
 
-// Все товары для поиска по всему меню
 const ALL_ITEMS = Object.entries(FOOD_DATA).flatMap(([cat, items]) => items);
 
 function init() {
@@ -69,8 +67,6 @@ function renderCategories() {
 
 function renderMenu() {
     menuContainer.innerHTML = '';
-
-    // Если есть поиск - ищем по ВСЕМУ списку ALL_ITEMS без учета категорий
     let items = searchTerm
         ? ALL_ITEMS.filter(i =>
             i.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -78,10 +74,7 @@ function renderMenu() {
         )
         : FOOD_DATA[currentCategory];
 
-    // Удаляем дубликаты (на всякий случай)
-    items = items.filter((obj, pos, arr) => {
-        return arr.map(mapObj => mapObj.id).indexOf(obj.id) === pos;
-    });
+    items = items.filter((obj, pos, arr) => arr.map(mapObj => mapObj.id).indexOf(obj.id) === pos);
 
     if (items.length === 0) {
         menuContainer.innerHTML = '<div style="grid-column: 1/3; text-align: center; padding: 40px; color: #555;">Ничего не найдено...</div>';
@@ -89,10 +82,10 @@ function renderMenu() {
     }
 
     items.forEach((item, index) => {
-        const qty = cart[item.id] || 0;
         const card = document.createElement('div');
         card.className = 'card fade-in';
         card.style.animationDelay = `${index * 0.03}s`;
+        card.id = `item-${item.id}`; // Уникальный ID для карты
 
         card.innerHTML = `
             <div class="card-img"></div>
@@ -100,22 +93,30 @@ function renderMenu() {
                 <h3>${item.name}</h3>
                 <p>${item.desc}</p>
             </div>
-            <div class="card-footer">
-                <div class="price-row">
-                    <div class="price">${item.price} ₽</div>
-                </div>
-                ${qty === 0
-                ? `<div class="qty-btn" onclick="updateQty('${item.id}', 1)">ДОБАВИТЬ</div>`
-                : `<div class="stepper">
-                        <div class="step-btn" onclick="updateQty('${item.id}', -1)">−</div>
-                        <div class="qty-val">${qty}</div>
-                        <div class="step-btn" onclick="updateQty('${item.id}', 1)">+</div>
-                       </div>`
-            }
+            <div class="card-footer" id="footer-${item.id}">
+                ${getFooterHTML(item)}
             </div>
         `;
         menuContainer.appendChild(card);
     });
+}
+
+// Вынес логику футера в отдельную функцию, чтобы обновлять его без моргания всей страницы
+function getFooterHTML(item) {
+    const qty = cart[item.id] || 0;
+    return `
+        <div class="price-row">
+            <div class="price">${item.price} ₽</div>
+        </div>
+        ${qty === 0
+            ? `<div class="qty-btn" onclick="updateQty('${item.id}', 1)">ДОБАВИТЬ</div>`
+            : `<div class="stepper">
+                <div class="step-btn" onclick="updateQty('${item.id}', -1)">−</div>
+                <div class="qty-val">${qty}</div>
+                <div class="step-btn" onclick="updateQty('${item.id}', 1)">+</div>
+               </div>`
+        }
+    `;
 }
 
 function updateQty(id, delta) {
@@ -130,18 +131,23 @@ function updateQty(id, delta) {
         tg.HapticFeedback.impactOccurred(delta > 0 ? 'light' : 'medium');
     }
 
-    renderMenu();
+    // ВАЖНО: Вместо перерисовки всего меню renderMenu(),
+    // мы точечно обновляем только футер одной кнопки
+    const footer = document.getElementById(`footer-${id}`);
+    if (footer) {
+        const item = ALL_ITEMS.find(i => i.id === id);
+        footer.innerHTML = getFooterHTML(item);
+    }
+
     updateCartUI();
 }
 
 function filterMenu() {
     searchTerm = searchInput.value;
-    // При поиске сбрасываем активную категорию визуально
     if (searchTerm) {
-        const cats = document.querySelectorAll('.cat-item');
-        cats.forEach(c => c.classList.remove('active'));
+        document.querySelectorAll('.cat-item').forEach(c => c.classList.remove('active'));
     } else {
-        renderCategories(); // Возвращаем подсветку текущей категории
+        renderCategories();
     }
     renderMenu();
 }
@@ -175,9 +181,7 @@ function openCart() {
             flatItems.push(id);
         }
     }
-
     if (flatItems.length === 0) return;
-
     tg.sendData(JSON.stringify({ items: flatItems }));
     tg.close();
 }
