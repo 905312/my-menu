@@ -26,6 +26,9 @@
             padding: 0;
             -webkit-backface-visibility: hidden;
             backface-visibility: hidden;
+            user-select: none;
+            /* Убирает курсор выделения текста */
+            -webkit-user-select: none;
         }
 
         body {
@@ -103,6 +106,9 @@
             transition: 0.2s;
             text-transform: uppercase;
             letter-spacing: 0.5px;
+            cursor: pointer;
+            /* Делаем палец вместо текстового курсора */
+            user-select: none;
         }
 
         .cat-item.active {
