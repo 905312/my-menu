@@ -24,7 +24,6 @@
             font-family: 'Inter', sans-serif;
             margin: 0;
             padding: 0;
-            /* Предотвращает мерцание при нажатии на мобильных */
             -webkit-backface-visibility: hidden;
             backface-visibility: hidden;
         }
@@ -50,7 +49,7 @@
         }
 
         header h1 {
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 800;
             letter-spacing: 2px;
         }
@@ -95,13 +94,15 @@
         }
 
         .cat-item {
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 700;
             color: var(--secondary-text);
             padding: 8px 0;
             white-space: nowrap;
             border-bottom: 2px solid transparent;
             transition: 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .cat-item.active {
@@ -114,7 +115,6 @@
             grid-template-columns: 1fr 1fr;
             gap: 12px;
             padding: 12px 20px 140px;
-            /* GPU ускорение для плавной прокрутки */
             transform: translateZ(0);
         }
 
@@ -137,12 +137,18 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            overflow: hidden;
+            background-size: cover;
+            background-position: center;
+            /* Эффект плавного появления картинки */
+            transition: opacity 0.3s ease;
         }
 
         .card h3 {
             font-size: 14px;
             font-weight: 700;
             margin-bottom: 4px;
+            line-height: 1.2;
         }
 
         .card p {
@@ -151,9 +157,9 @@
             margin-bottom: 12px;
             height: 32px;
             overflow: hidden;
+            line-height: 1.4;
         }
 
-        /* Фиксированный футер чтобы не было скачков */
         .card-footer {
             height: 90px;
             display: flex;
@@ -186,6 +192,7 @@
             justify-content: center;
             font-size: 22px;
             cursor: pointer;
+            color: #fff;
         }
 
         .qty-val {
@@ -208,13 +215,13 @@
 
         .cart-float {
             position: fixed;
-            bottom: 30px;
+            bottom: max(24px, env(safe-area-inset-bottom));
             left: 20px;
             right: 20px;
             background: #fff;
             color: #000;
             height: 64px;
-            border-radius: 20px;
+            border-radius: 22px;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -222,7 +229,6 @@
             font-weight: 800;
             z-index: 1000;
             box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
-            /* Убираем плавную анимацию, если она лагает, но оставим аккуратный выезд */
             transform: translateY(150px);
             transition: transform 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
         }
@@ -247,7 +253,7 @@
         <h1>RESTO X PREMIUM</h1>
     </header>
     <div class="search-container">
-        <div class="search-bar">🔍 <input type="text" id="searchInput" placeholder="Поиск по меню..."
+        <div class="search-bar">🔍 <input type="text" id="searchInput" placeholder="Поиск любимой еды..."
                 oninput="filterMenu()"></div>
     </div>
     <div class="category-scroll" id="categories-container"></div>
