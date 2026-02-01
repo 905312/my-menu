@@ -8,7 +8,6 @@
     <title>RESTO X PREMIUM</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- ПОДКЛЮЧАЕМ ЯНДЕКС КАРТЫ (Вставь свой ключ вместо ВАШ_КЛЮЧ) -->
     <script src="https://api-maps.yandex.ru/2.1/?apikey=06485227-6fb7-4113-a180-9ee4af1bdb52&lang=ru_RU"
         type="text/javascript"></script>
     <style>
@@ -101,34 +100,34 @@
         .search-inner input {
             background: transparent;
             border: none;
-            color: inherit;
+            color: var(--accent-color);
+            font-size: 14px;
             width: 100%;
             outline: none;
         }
 
-        .category-scroll {
+        .categories {
             display: flex;
             overflow-x: auto;
-            padding: 12px 20px;
+            padding: 10px 20px;
             gap: 10px;
             scrollbar-width: none;
         }
 
-        .category-scroll::-webkit-scrollbar {
+        .categories::-webkit-scrollbar {
             display: none;
         }
 
         .cat-item {
-            font-size: 13px;
-            font-weight: 700;
-            color: var(--secondary-text);
             padding: 10px 18px;
             background: var(--surface-accent);
-            border-radius: 100px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 700;
             white-space: nowrap;
-            transition: 0.2s;
-            border: 1px solid var(--border-color);
             cursor: pointer;
+            transition: 0.3s;
+            border: 1px solid var(--border-color);
         }
 
         .cat-item.active {
@@ -137,10 +136,10 @@
         }
 
         .menu-grid {
+            padding: 10px 20px 100px;
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            padding: 12px 20px 140px;
+            gap: 15px;
         }
 
         .card {
@@ -148,19 +147,17 @@
             border-radius: 24px;
             padding: 12px;
             border: 1px solid var(--border-color);
-            position: relative;
             display: flex;
             flex-direction: column;
-            min-height: 290px;
         }
 
         .card-img {
             width: 100%;
             aspect-ratio: 1;
             border-radius: 18px;
-            margin-bottom: 12px;
             background-size: cover;
             background-position: center;
+            margin-bottom: 12px;
         }
 
         .card h3 {
@@ -172,52 +169,55 @@
         .card p {
             font-size: 11px;
             color: var(--secondary-text);
-            height: 32px;
-            overflow: hidden;
             margin-bottom: 12px;
+            line-height: 1.3;
+            flex-grow: 1;
+        }
+
+        .card-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .price {
             font-weight: 800;
-            font-size: 16px;
-            margin-bottom: 8px;
+            font-size: 15px;
         }
 
         .qty-btn {
             background: var(--accent-color);
             color: var(--bg-color);
-            height: 44px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 11px;
             font-weight: 800;
+            font-size: 11px;
+            padding: 8px 14px;
+            border-radius: 12px;
             cursor: pointer;
         }
 
         .stepper {
-            background: var(--surface-accent);
-            height: 44px;
-            border-radius: 12px;
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            padding: 2px;
+            gap: 12px;
+            background: var(--surface-accent);
+            padding: 4px;
+            border-radius: 12px;
         }
 
         .step-btn {
-            width: 40px;
-            height: 40px;
+            width: 28px;
+            height: 28px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 20px;
-            color: var(--accent-color);
+            background: var(--surface-color);
+            border-radius: 8px;
+            font-weight: 800;
+            cursor: pointer;
         }
 
+        /* VIEWS */
         .view {
-            display: none;
             position: fixed;
             top: 0;
             left: 0;
@@ -225,8 +225,8 @@
             height: 100%;
             background: var(--bg-color);
             z-index: 2000;
+            display: none;
             flex-direction: column;
-            overflow-y: auto;
         }
 
         .view.active {
@@ -248,85 +248,11 @@
         .view-content {
             padding: 20px;
             flex-grow: 1;
+            overflow-y: auto;
+            padding-bottom: 100px;
         }
 
-        /* CART */
-        .cart-item-row {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            padding: 15px 0;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .cart-item-img {
-            width: 60px;
-            height: 60px;
-            border-radius: 12px;
-            background-size: cover;
-            background-position: center;
-        }
-
-        .cart-item-info {
-            flex-grow: 1;
-        }
-
-        .cart-item-info h4 {
-            font-size: 14px;
-        }
-
-        /* ADDRESS & YANDEX MAP */
-        #map {
-            height: 200px;
-            border-radius: 20px;
-            margin: 15px 0;
-            border: 1px solid var(--border-color);
-            overflow: hidden;
-        }
-
-        .input-main {
-            width: 100%;
-            padding: 16px;
-            background: var(--surface-accent);
-            border: 1px solid var(--border-color);
-            border-radius: 14px;
-            color: var(--accent-color);
-            outline: none;
-            margin-bottom: 10px;
-            font-size: 14px;
-        }
-
-        .form-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-        }
-
-        .input-full {
-            grid-column: span 2;
-            width: 100%;
-            padding: 16px;
-            background: var(--surface-accent);
-            border: 1px solid var(--border-color);
-            border-radius: 14px;
-            color: var(--accent-color);
-            outline: none;
-            resize: none;
-        }
-
-        .confirm-btn {
-            width: 100%;
-            padding: 18px;
-            background: var(--accent-color);
-            color: var(--bg-color);
-            border-radius: 18px;
-            font-weight: 800;
-            border: none;
-            font-size: 15px;
-            margin-top: 10px;
-            cursor: pointer;
-        }
-
+        /* CART FLOAT */
         .cart-float {
             position: fixed;
             bottom: max(20px, env(safe-area-inset-bottom));
@@ -377,6 +303,82 @@
         .res-item:active {
             background: var(--surface-accent);
         }
+
+        /* TOGGLE PICKUP/DELIVERY */
+        .mode-toggle {
+            display: flex;
+            background: var(--surface-accent);
+            border-radius: 16px;
+            padding: 4px;
+            margin-bottom: 20px;
+        }
+
+        .mode-btn {
+            flex: 1;
+            padding: 12px;
+            text-align: center;
+            font-size: 13px;
+            font-weight: 700;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .mode-btn.active {
+            background: var(--accent-color);
+            color: var(--bg-color);
+        }
+
+        .input-main {
+            width: 100%;
+            padding: 16px;
+            background: var(--surface-accent);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            color: var(--accent-color);
+            outline: none;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .input-full {
+            grid-column: span 2;
+            width: 100%;
+            padding: 16px;
+            background: var(--surface-accent);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            color: var(--accent-color);
+            outline: none;
+            resize: none;
+        }
+
+        #map {
+            height: 200px;
+            border-radius: 20px;
+            margin: 15px 0;
+            border: 1px solid var(--border-color);
+            display: block;
+        }
+
+        .confirm-btn {
+            width: 100%;
+            padding: 18px;
+            background: var(--accent-color);
+            color: var(--bg-color);
+            border-radius: 18px;
+            font-weight: 800;
+            border: none;
+            font-size: 15px;
+            margin-top: 20px;
+            cursor: pointer;
+        }
     </style>
 </head>
 
@@ -386,83 +388,83 @@
             <h1>RESTO X PREMIUM</h1>
             <div class="theme-toggle" onclick="toggleTheme()">🌓</div>
         </header>
+
         <div class="search-container">
-            <div class="search-inner">🔍 <input type="text" id="searchInput" placeholder="Поиск деликатесов..."
-                    oninput="filterMenu()"></div>
+            <div class="search-inner">
+                <span>🔍</span>
+                <input type="text" id="searchInput" placeholder="Поиск деликатесов..." oninput="filterMenu()">
+            </div>
         </div>
-        <div class="category-scroll" id="categories-container"></div>
+
+        <div class="categories" id="categories-container"></div>
         <div class="menu-grid" id="menu-container"></div>
+
         <div class="cart-float" id="cart-float" onclick="showCartView()">
-            <div style="display:flex; align-items:center;"><span id="cart-qty"
-                    style="background:var(--bg-color); color:var(--accent-color); padding:4px 10px; border-radius:8px; margin-right:12px;">0</span><span>В
-                    КОРЗИНУ</span></div>
-            <div id="cart-sum">0 ₽</div>
+            <span id="cart-qty">0</span>
+            <span>ПЕРЕЙТИ В КОРЗИНУ</span>
+            <span id="cart-sum">0 ₽</span>
         </div>
     </div>
 
-    <!-- VIEW: КОРЗИНА -->
+    <!-- VIEW: CART -->
     <div id="cart-view" class="view">
         <div class="view-header">
-            <div onclick="hideCartView()" style="font-size:24px; cursor:pointer;">⬅</div>
-            <h3 style="flex-grow:1; text-align:center;">Ваш заказ</h3>
+            <button onclick="hideCartView()"
+                style="background:none; border:none; color:var(--accent-color); font-size:24px; cursor:pointer;">←</button>
+            <h3 style="flex-grow:1; text-align:center;">Ваша корзина</h3>
         </div>
-        <div class="view-content">
-            <div id="cart-items-list"></div>
-            <div style="margin-top:20px; padding:15px; background:var(--surface-color); border-radius:18px;">
-                <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span>Блюда:</span> <span
-                        id="cart-total-items">0 ₽</span></div>
-                <div style="display:flex; justify-content:space-between; font-weight:800; font-size:18px;">
-                    <span>Итого:</span> <span id="cart-total-final">0 ₽</span>
-                </div>
+        <div class="view-content" id="cart-items-list"></div>
+        <div
+            style="padding:20px; border-top:1px solid var(--border-color); background:var(--surface-color); position:sticky; bottom:0;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:15px; font-weight:700;">
+                <span>К оплате:</span>
+                <span id="cart-total-final">0 ₽</span>
             </div>
-            <button class="confirm-btn" onclick="showAddressView()">ПЕРЕЙТИ К ДОСТАВКЕ</button>
+            <button class="confirm-btn" onclick="showAddressView()">ПРОДОЛЖИТЬ</button>
         </div>
     </div>
 
-    <!-- VIEW: АДРЕС -->
+    <!-- VIEW: ADDRESS / DELIVERY MODE -->
     <div id="address-view" class="view">
         <div class="view-header">
-            <div onclick="hideAddressView()" style="font-size:24px; cursor:pointer;">⬅</div>
+            <button onclick="hideAddressView()"
+                style="background:none; border:none; color:var(--accent-color); font-size:24px; cursor:pointer;">←</button>
             <h3 style="flex-grow:1; text-align:center;">Доставка</h3>
         </div>
         <div class="view-content">
-            <div style="position:relative; z-index:2010;">
-                <input type="text" id="addr-search" class="input-main" placeholder="Введите ваш адрес..."
-                    oninput="searchAddress()">
-                <div id="addr-results" class="search-results"></div>
-            </div>
-            <div id="map"></div>
-            <p style="font-size:12px; color:var(--secondary-text); text-align:center; margin-bottom:15px;">Ткните в дом
-                на карте для выбора адреса</p>
-            <div class="form-grid">
-                <input type="text" id="f-apt" class="input-main" placeholder="Квартира *">
-                <input type="text" id="f-ent" class="input-main" placeholder="Подъезд *">
-                <input type="text" id="f-floor" class="input-main" placeholder="Этаж *">
-                <input type="text" id="f-code" class="input-main" placeholder="Домофон">
-                <textarea id="f-comment" class="input-full" rows="2"
-                    placeholder="Комментарий для курьера..."></textarea>
+            <div class="mode-toggle">
+                <div class="mode-btn active" id="btn-delivery" onclick="setMode('delivery')">Доставка (99 ₽)</div>
+                <div class="mode-btn" id="btn-pickup" onclick="setMode('pickup')">Самовывоз (0 ₽)</div>
             </div>
 
-            <div style="margin-top: 15px;">
-                <p style="font-size:13px; font-weight:700; margin-bottom:10px; color:var(--secondary-text);">ВЫБЕРИТЕ
-                    ЗОНУ ДОСТАВКИ:</p>
-                <select id="f-zone" class="input-main" style="background-image:none;">
-                    <option value="Самовывоз|0">📦 Самовывоз (0 ₽)</option>
-                    <option value="Доставка 0-3 км|199">🛵 Доставка 0-3 км (199 ₽)</option>
-                    <option value="Доставка 3-6 км|299">🚚 Доставка 3-6 км (299 ₽)</option>
-                    <option value="Доставка 6-10 км|399">🚀 Доставка 6-10 км (399 ₽)</option>
-                </select>
+            <div id="delivery-fields">
+                <div style="position:relative; z-index:2010;">
+                    <input type="text" id="addr-search" class="input-main" placeholder="Введите ваш адрес..."
+                        oninput="searchAddress()">
+                    <div id="addr-results" class="search-results"></div>
+                </div>
+                <div id="map"></div>
+                <p style="font-size:12px; color:var(--secondary-text); text-align:center; margin-bottom:15px;">Ткните в
+                    дом на карте для выбора адреса</p>
+                <div class="form-grid">
+                    <input type="text" id="f-apt" class="input-main" placeholder="Квартира *">
+                    <input type="text" id="f-ent" class="input-main" placeholder="Подъезд *">
+                    <input type="text" id="f-floor" class="input-main" placeholder="Этаж *">
+                    <input type="text" id="f-code" class="input-main" placeholder="Домофон">
+                </div>
             </div>
 
-            <button class="confirm-btn" onclick="finalizeOrder()">ЗАКАЗАТЬ И ОПЛАТИТЬ</button>
+            <textarea id="f-comment" class="input-full" rows="2"
+                placeholder="Комментарий для курьера/ресторана..."></textarea>
+            <button class="confirm-btn" id="final-btn" onclick="finalizeOrder()">ЗАКАЗАТЬ: 0 ₽</button>
         </div>
     </div>
 
-    <!-- VIEW: УСПЕХ -->
+    <!-- VIEW: SUCCESS -->
     <div id="success-view" class="view" style="text-align:center; justify-content:center; padding:40px;">
         <div style="font-size:80px; margin-bottom:20px;">✅</div>
         <h2>Заказ оформлен!</h2>
-        <p style="color:var(--secondary-text); margin: 15px 0 30px;">Повар уже начал готовить.</p>
+        <div id="success-msg" style="color:var(--secondary-text); margin: 15px 0 30px;">Бот прислал детали в чат.</div>
         <button class="confirm-btn" onclick="window.Telegram.WebApp.close()">ОТЛИЧНО!</button>
     </div>
 

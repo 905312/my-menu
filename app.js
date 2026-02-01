@@ -13,6 +13,8 @@ let cart = {};
 let currentCategory = "🍕 Пицца";
 let searchTerm = "";
 let myMap, myPlacemark, selectedAddress = "";
+let deliveryMode = 'delivery'; // 'delivery' or 'pickup'
+const DELIVERY_FEE = 99;
 
 const FOOD_DATA = {
     "🍕 Пицца": [
@@ -125,8 +127,7 @@ function renderCart() {
     for (let id in cart) {
         const item = ALL_ITEMS.find(x => x.id === id);
         totalS += item.price * cart[id];
-        const row = document.createElement('div');
-        row.className = 'cart-item-row';
+        const row = document.createElement('div'); row.className = 'cart-item-row';
         row.innerHTML = `
             <div class="cart-item-img" style="background-image: url('img/${encodeURIComponent(item.name)}.jpg')"></div>
             <div class="cart-item-info"><h4>${item.name}</h4><p>${item.price} ₽</p></div>
@@ -134,16 +135,30 @@ function renderCart() {
                 <div class="step-btn" onclick="updateQty('${item.id}', -1)">−</div>
                 <div style="font-weight:700;">${cart[id]}</div>
                 <div class="step-btn" onclick="updateQty('${item.id}', 1)">+</div>
-            </div></div>
-        `;
+            </div></div>`;
         list.appendChild(row);
     }
-    document.getElementById('cart-total-items').innerText = totalS + ' ₽';
     document.getElementById('cart-total-final').innerText = totalS + ' ₽';
+}
+
+function setMode(mode) {
+    deliveryMode = mode;
+    document.getElementById('btn-delivery').classList.toggle('active', mode === 'delivery');
+    document.getElementById('btn-pickup').classList.toggle('active', mode === 'pickup');
+    document.getElementById('delivery-fields').style.display = (mode === 'delivery') ? 'block' : 'none';
+    updateFinalButton();
+}
+
+function updateFinalButton() {
+    let foodSum = 0;
+    for (let id in cart) { foodSum += ALL_ITEMS.find(x => x.id === id).price * cart[id]; }
+    const total = foodSum + (deliveryMode === 'delivery' ? DELIVERY_FEE : 0);
+    document.getElementById('final-btn').innerText = `ЗАКАЗАТЬ: ${total} ₽`;
 }
 
 function showAddressView() {
     document.getElementById('address-view').classList.add('active');
+    updateFinalButton();
     if (typeof ymaps !== 'undefined') {
         ymaps.ready(() => {
             initYandexMap();
@@ -151,41 +166,32 @@ function showAddressView() {
         });
     }
 }
-function hideAddressView() {
-    document.getElementById('address-view').classList.remove('active');
-    document.getElementById('addr-results').style.display = 'none';
-}
+function hideAddressView() { document.getElementById('address-view').classList.remove('active'); }
 
 function initYandexMap() {
     if (myMap) return;
-    myMap = new ymaps.Map("map", { center: [55.7558, 37.6173], zoom: 12, controls: ['zoomControl', 'geolocationControl'] });
-
+    myMap = new ymaps.Map("map", { center: [55.7558, 37.6173], zoom: 12, controls: ['zoomControl'] });
     myMap.events.add('click', function (e) {
         const coords = e.get('coords');
         setMarker(coords);
-        document.getElementById('addr-search').value = "Определяем адрес...";
-        ymaps.geocode(coords).then(function (res) {
-            const firstGeoObject = res.geoObjects.get(0);
-            selectedAddress = firstGeoObject.getAddressLine();
+        ymaps.geocode(coords).then(res => {
+            selectedAddress = res.geoObjects.get(0).getAddressLine();
             document.getElementById('addr-search').value = selectedAddress;
         });
     });
 }
 
 function setMarker(coords) {
-    if (myPlacemark) {
-        myPlacemark.geometry.setCoordinates(coords);
-    } else {
-        myPlacemark = new ymaps.Placemark(coords, {}, { preset: 'islands#redIcon' });
-        myMap.geoObjects.add(myPlacemark);
-    }
+    if (myPlacemark) myPlacemark.geometry.setCoordinates(coords);
+    else { myPlacemark = new ymaps.Placemark(coords, {}, { preset: 'islands#redIcon' }); myMap.geoObjects.add(myPlacemark); }
 }
 
 async function searchAddress() {
     const q = document.getElementById('addr-search').value;
     const resDiv = document.getElementById('addr-results');
-    if (q.length < 3 || q === "Определяем адрес...") { resDiv.style.display = 'none'; return; }
-    ymaps.suggest(q).then(function (items) {
+    if (q.length < 3) { resDiv.style.display = 'none'; return; }
+
+    ymaps.suggest(q).then(items => {
         if (!items.length) { resDiv.style.display = 'none'; return; }
         resDiv.innerHTML = '';
         items.forEach(item => {
@@ -193,11 +199,10 @@ async function searchAddress() {
             div.className = 'res-item';
             div.innerText = item.displayName;
             div.onclick = () => {
-                const addr = item.value;
-                selectedAddress = addr;
-                document.getElementById('addr-search').value = addr;
+                selectedAddress = item.value;
+                document.getElementById('addr-search').value = selectedAddress;
                 resDiv.style.display = 'none';
-                ymaps.geocode(addr).then(function (res) {
+                ymaps.geocode(selectedAddress).then(res => {
                     const coords = res.geoObjects.get(0).geometry.getCoordinates();
                     myMap.setCenter(coords, 17);
                     setMarker(coords);
@@ -210,29 +215,30 @@ async function searchAddress() {
 }
 
 function finalizeOrder() {
-    const apt = document.getElementById('f-apt').value.trim();
-    const ent = document.getElementById('f-ent').value.trim();
-    const floor = document.getElementById('f-floor').value.trim();
-    const code = document.getElementById('f-code').value.trim();
     const comment = document.getElementById('f-comment').value.trim();
-    const zoneData = document.getElementById('f-zone').value.split('|');
-    const zoneName = zoneData[0];
-    const zonePrice = parseInt(zoneData[1]);
-
-    if (!selectedAddress || selectedAddress === "Определяем адрес...") { tg.showAlert("Выберите адрес на карте!"); return; }
-    if (!apt || !ent || !floor) { tg.showAlert("Пожалуйста, заполните: Квартира, Подъезд и Этаж!"); return; }
-
-    const fullAddr = `${selectedAddress} (Квартира: ${apt}, Подъезд: ${ent}, Этаж: ${floor}${code ? ', Домофон: ' + code : ''})`;
-    const data = {
+    let finalData = {
         items: Object.entries(cart).flatMap(([id, qty]) => Array(qty).fill(id)),
-        address: fullAddr,
         comment: comment,
-        delivery_zone: zoneName,
-        delivery_price: zonePrice,
-        est_time: 30 + (Object.keys(cart).length * 4)
+        mode: deliveryMode
     };
 
-    tg.sendData(JSON.stringify(data));
+    if (deliveryMode === 'delivery') {
+        const apt = document.getElementById('f-apt').value.trim();
+        const ent = document.getElementById('f-ent').value.trim();
+        const floor = document.getElementById('f-floor').value.trim();
+        if (!selectedAddress) { tg.showAlert("Выберите адрес на карте!"); return; }
+        if (!apt || !ent || !floor) { tg.showAlert("Заполните Квартиру, Подъезд и Этаж!"); return; }
+        finalData.address = `${selectedAddress} (Квартира: ${apt}, Подъезд: ${ent}, Этаж: ${floor}${document.getElementById('f-code').value ? ', Домофон: ' + document.getElementById('f-code').value : ''})`;
+        finalData.delivery_price = DELIVERY_FEE;
+    } else {
+        finalData.address = "САМОВЫВОЗ (В ресторане)";
+        finalData.delivery_price = 0;
+    }
+
+    tg.sendData(JSON.stringify(finalData));
+    if (deliveryMode === 'pickup') {
+        document.getElementById('success-msg').innerText = "Покажите этот экран на кассе при получении!";
+    }
     document.getElementById('success-view').classList.add('active');
 }
 
