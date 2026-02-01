@@ -366,35 +366,6 @@
             background: #333;
         }
 
-        /* ZONE MODAL */
-        .zone-modal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.9);
-            z-index: 20000;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-        }
-
-        .zone-modal img {
-            width: 100%;
-            border-radius: 20px;
-            border: 2px solid var(--accent-color);
-        }
-
-        .close-zone {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            font-size: 30px;
-            color: #fff;
-        }
-
         .mode-toggle {
             display: flex;
             background: var(--surface-accent);
@@ -521,10 +492,6 @@
 
             <div id="delivery-fields">
                 <div style="margin-bottom: 20px;">
-                    <button onclick="toggleZoneModal(true)"
-                        style="width:100%; background:var(--surface-accent); border:1px dashed var(--secondary-text); padding:10px; border-radius:12px; color:var(--secondary-text); font-size:12px; margin-bottom:15px;">🗺
-                        Посмотреть зону доставки</button>
-
                     <label style="font-size:12px; color:var(--secondary-text); margin-left:5px;">Город *</label>
                     <input type="text" id="f-city" class="input-main" value="Санкт-Петербург">
 
@@ -564,18 +531,7 @@
         <button class="confirm-btn" onclick="window.Telegram.WebApp.close()">ОТЛИЧНО!</button>
     </div>
 
-    <!-- ZONE MODAL -->
-    <div id="zone-modal" class="zone-modal">
-        <div class="close-zone" onclick="toggleZoneModal(false)">✕</div>
-        <div style="text-align: center;">
-            <p style="color:#fff; margin-bottom:15px; font-weight:700;">🏠 Наша зона доставки</p>
-            <img src="https://backend.pizzasushiwok.ru/images/delivery-zone/full/spb-zones.png" alt="Зона доставки">
-            <p style="color:var(--secondary-text); font-size:12px; margin-top:15px;">Если вы находитесь вне зоны, мы
-                свяжемся с вами для отмены.</p>
-        </div>
-    </div>
-
-    <script src="app.js?v=5.0"></script>
+    <script src="app.js?v=7.0"></script>
 </body>
 
 </html>
