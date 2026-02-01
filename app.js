@@ -48,10 +48,10 @@ function init() {
     if (localStorage.getItem('theme') === 'light') document.body.classList.add('light-theme');
 
     // ПРОВЕРКА ЗАГРУЗКИ ЯНДЕКСА
-    if (typeof ymaps === 'undefined') {
-        console.error("Yandex API not loaded!");
-    } else {
-        ymaps.ready(() => console.log("Yandex JS API Ready"));
+    if (typeof ymaps !== 'undefined') {
+        ymaps.ready(() => {
+            console.log("Yandex JS API Ready");
+        });
     }
 
     renderCategories();
@@ -181,10 +181,12 @@ async function searchAddress() {
 
     clearTimeout(searchDebounce);
     searchDebounce = setTimeout(async () => {
-        if (typeof ymaps === 'undefined') return;
+        if (typeof ymaps === 'undefined' || !ymaps.suggest) {
+            console.warn("Yandex Suggest API not available. Check your subscription!");
+            return;
+        }
 
         try {
-            // ПРЯМОЙ ЗАПРОС К ДВИЖКУ ЯНДЕКСА
             const suggestions = await ymaps.suggest(query);
             if (suggestions && suggestions.length > 0) {
                 resDiv.innerHTML = '';
