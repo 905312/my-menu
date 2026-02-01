@@ -156,27 +156,46 @@ function updateMarker(latlng) {
     document.getElementById('curr-addr').innerText = `Координаты: ${selectedAddress}`;
 }
 
-// БЕСПЛАТНЫЙ ГЕОКОДЕР (PHOTON)
+// БЕСПЛАТНЫЙ ГЕОКОДЕР (PHOTON) ИСПРАВЛЕННЫЙ
 async function searchAddress() {
     const q = document.getElementById('addr-search').value;
     const resDiv = document.getElementById('addr-results');
     if (q.length < 3) { resDiv.style.display = 'none'; return; }
 
-    const resp = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=5`);
+    // Ищем только в России, на русском языке
+    const resp = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=5&lang=ru&countrycode=ru`);
     const data = await resp.json();
 
     resDiv.innerHTML = '';
     data.features.forEach(f => {
+        const p = f.properties;
         const div = document.createElement('div');
         div.className = 'res-item';
-        const name = f.properties.name + (f.properties.city ? ', ' + f.properties.city : '');
-        div.innerText = name;
+
+        // Собираем адрес по кусочкам, чтобы не было undefined
+        let addrParts = [];
+
+        // Если есть улица
+        if (p.street) addrParts.push(p.street);
+        else if (p.name && p.osm_value !== 'city') addrParts.push(p.name);
+
+        // Если есть номер дома
+        if (p.housenumber) addrParts.push(p.housenumber);
+
+        // Добавляем город
+        const city = p.city || p.town || p.village;
+        if (city) addrParts.push(city);
+
+        // Если вдруг всё равно пусто, берем то, что есть
+        const fullAddr = addrParts.length > 0 ? addrParts.join(', ') : (p.name || "Неизвестный адрес");
+
+        div.innerText = fullAddr;
         div.onclick = () => {
             const [lng, lat] = f.geometry.coordinates;
-            map.setView([lat, lng], 16);
+            map.setView([lat, lng], 17);
             updateMarker({ lat, lng });
-            document.getElementById('addr-search').value = name;
-            selectedAddress = name;
+            document.getElementById('addr-search').value = fullAddr;
+            selectedAddress = fullAddr;
             resDiv.style.display = 'none';
         };
         resDiv.appendChild(div);
