@@ -8,9 +8,7 @@
     <title>RESTO X PREMIUM</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <script
-        src="https://api-maps.yandex.ru/2.1/?apikey=210962e7-eac6-4a44-82a1-c15412780fb5&lang=ru_RU&load=package.full"
-        type="text/javascript"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg-color: #000000;
@@ -368,25 +366,33 @@
             background: #333;
         }
 
-        /* TOGGLE PICKUP/DELIVERY */
-        /* FORCE YANDEX SUGGEST VISIBILITY */
-        [class*="suggest-panel"] {
-            z-index: 9999999999 !important;
-            background-color: var(--surface-accent) !important;
-            border: 1px solid var(--border-color) !important;
-            border-radius: 12px !important;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8) !important;
-            font-family: 'Inter', sans-serif !important;
+        /* ZONE MODAL */
+        .zone-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 20000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
         }
 
-        [class*="suggest-item"] {
-            padding: 12px 16px !important;
-            color: var(--accent-color) !important;
-            font-size: 14px !important;
+        .zone-modal img {
+            width: 100%;
+            border-radius: 20px;
+            border: 2px solid var(--accent-color);
         }
 
-        [class*="suggest-item"]:hover {
-            background-color: #333 !important;
+        .close-zone {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            font-size: 30px;
+            color: #fff;
         }
 
         .mode-toggle {
@@ -441,14 +447,6 @@
             color: var(--accent-color);
             outline: none;
             resize: none;
-        }
-
-        #map {
-            height: 200px;
-            border-radius: 20px;
-            margin: 15px 0;
-            border: 1px solid var(--border-color);
-            display: block;
         }
 
         .confirm-btn {
@@ -522,13 +520,30 @@
             </div>
 
             <div id="delivery-fields">
-                <div style="position:relative; z-index:2010; margin-bottom: 20px;">
-                    <input type="text" id="addr-search" class="input-main"
-                        placeholder="Введите ваш адрес (Улица, дом)..." oninput="searchAddress()" autocomplete="off">
-                    <div id="addr-results" class="search-results"></div>
+                <div style="margin-bottom: 20px;">
+                    <button onclick="toggleZoneModal(true)"
+                        style="width:100%; background:var(--surface-accent); border:1px dashed var(--secondary-text); padding:10px; border-radius:12px; color:var(--secondary-text); font-size:12px; margin-bottom:15px;">🗺
+                        Посмотреть зону доставки</button>
+
+                    <label style="font-size:12px; color:var(--secondary-text); margin-left:5px;">Город *</label>
+                    <input type="text" id="f-city" class="input-main" value="Санкт-Петербург">
+
+                    <label style="font-size:12px; color:var(--secondary-text); margin-left:5px;">Улица *</label>
+                    <input type="text" id="f-street" class="input-main" placeholder="Название улицы">
+
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                        <div>
+                            <label style="font-size:12px; color:var(--secondary-text); margin-left:5px;">Дом *</label>
+                            <input type="text" id="f-house" class="input-main" placeholder="№ дома">
+                        </div>
+                        <div>
+                            <label style="font-size:12px; color:var(--secondary-text); margin-left:5px;">Квартира
+                                *</label>
+                            <input type="text" id="f-apt" class="input-main" placeholder="№">
+                        </div>
+                    </div>
                 </div>
                 <div class="form-grid">
-                    <input type="text" id="f-apt" class="input-main" placeholder="Квартира *">
                     <input type="text" id="f-ent" class="input-main" placeholder="Подъезд *">
                     <input type="text" id="f-floor" class="input-main" placeholder="Этаж *">
                     <input type="text" id="f-code" class="input-main" placeholder="Домофон">
@@ -549,7 +564,18 @@
         <button class="confirm-btn" onclick="window.Telegram.WebApp.close()">ОТЛИЧНО!</button>
     </div>
 
-    <script src="app.js?v=4.0"></script>
+    <!-- ZONE MODAL -->
+    <div id="zone-modal" class="zone-modal">
+        <div class="close-zone" onclick="toggleZoneModal(false)">✕</div>
+        <div style="text-align: center;">
+            <p style="color:#fff; margin-bottom:15px; font-weight:700;">🏠 Наша зона доставки</p>
+            <img src="https://backend.pizzasushiwok.ru/images/delivery-zone/full/spb-zones.png" alt="Зона доставки">
+            <p style="color:var(--secondary-text); font-size:12px; margin-top:15px;">Если вы находитесь вне зоны, мы
+                свяжемся с вами для отмены.</p>
+        </div>
+    </div>
+
+    <script src="app.js?v=5.0"></script>
 </body>
 
 </html>

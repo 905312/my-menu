@@ -12,7 +12,6 @@ tg.ready();
 let cart = {};
 let currentCategory = "🍕 Пицца";
 let searchTerm = "";
-let selectedAddress = "";
 let deliveryMode = 'delivery';
 const DELIVERY_FEE = 99;
 
@@ -46,16 +45,6 @@ const ALL_ITEMS = Object.entries(FOOD_DATA).flatMap(([cat, items]) => items);
 
 function init() {
     if (localStorage.getItem('theme') === 'light') document.body.classList.add('light-theme');
-
-    // ПРОВЕРКА ЗАГРУЗКИ ЯНДЕКСА
-    if (typeof ymaps === 'undefined') {
-        console.error("Yandex API not loaded!");
-    } else {
-        ymaps.ready(() => {
-            console.log("Yandex JS API Ready! (Using Geocoder Engine)");
-        });
-    }
-
     renderCategories();
     renderMenu();
 }
@@ -171,61 +160,12 @@ function showAddressView() {
 }
 function hideAddressView() { document.getElementById('address-view').classList.remove('active'); }
 
-// --- УЛЬТРА СТАБИЛЬНЫЙ ПОИСК ЧЕРЕЗ ГЕОКОДЕР ---
-let searchDebounce;
-async function searchAddress() {
-    const qInput = document.getElementById('addr-search');
-    const resDiv = document.getElementById('addr-results');
-    if (!qInput || !resDiv) return;
-
-    const query = qInput.value.trim();
-    if (query.length < 4) { resDiv.style.display = 'none'; return; }
-
-    clearTimeout(searchDebounce);
-    searchDebounce = setTimeout(async () => {
-        if (typeof ymaps === 'undefined') return;
-
-        try {
-            // ИСПОЛЬЗУЕМ ГЕОКОДЕР ВМЕСТО САДЖЕСТА (т.к. статистика по нему идет)
-            const res = await ymaps.geocode(query, { results: 5 });
-            const geoObjects = res.geoObjects.toArray();
-
-            if (geoObjects.length > 0) {
-                resDiv.innerHTML = '';
-                geoObjects.forEach(obj => {
-                    const addr = obj.getAddressLine();
-                    const div = document.createElement('div');
-                    div.className = 'res-item';
-                    div.innerHTML = `📍 ${addr}`;
-                    div.onclick = (e) => {
-                        e.stopPropagation();
-                        selectedAddress = addr;
-                        qInput.value = addr;
-                        resDiv.style.display = 'none';
-                    };
-                    resDiv.appendChild(div);
-                });
-                resDiv.style.display = 'block';
-            } else {
-                resDiv.style.display = 'none';
-            }
-        } catch (e) {
-            console.error("Geocoding search error:", e);
-        }
-    }, 500);
+function toggleZoneModal(show) {
+    document.getElementById('zone-modal').style.display = show ? 'flex' : 'none';
 }
 
-document.addEventListener('click', () => {
-    const rd = document.getElementById('addr-results');
-    if (rd) rd.style.display = 'none';
-});
-
 function finalizeOrder() {
-    const manualAddr = document.getElementById('addr-search').value.trim();
     const comment = document.getElementById('f-comment').value.trim();
-    const apt = document.getElementById('f-apt').value.trim();
-    const ent = document.getElementById('f-ent').value.trim();
-    const floor = document.getElementById('f-floor').value.trim();
 
     let finalData = {
         items: Object.entries(cart).flatMap(([id, qty]) => Array(qty).fill(id)),
@@ -234,14 +174,29 @@ function finalizeOrder() {
     };
 
     if (deliveryMode === 'delivery') {
-        const finalAddr = selectedAddress || manualAddr;
-        if (!finalAddr || finalAddr.length < 5) { tg.showAlert("Введите полный адрес!"); return; }
-        if (!apt || !ent || !floor) { tg.showAlert("Заполните Квартиру, Подъезд и Этаж!"); return; }
+        const city = document.getElementById('f-city').value.trim();
+        const street = document.getElementById('f-street').value.trim();
+        const house = document.getElementById('f-house').value.trim();
+        const apt = document.getElementById('f-apt').value.trim();
+        const ent = document.getElementById('f-ent').value.trim();
+        const floor = document.getElementById('f-floor').value.trim();
+        const code = document.getElementById('f-code').value.trim();
 
-        finalData.address = `${finalAddr} (Кв: ${apt}, Под: ${ent}, Эт: ${floor}${document.getElementById('f-code').value ? ', Код: ' + document.getElementById('f-code').value : ''})`;
+        if (!city || !street || !house || !apt || !ent || !floor) {
+            tg.showAlert("Заполните все обязательные поля со звездочкой!");
+            return;
+        }
+
+        // Простая проверка города
+        if (!city.toLowerCase().includes("санкт") && !city.toLowerCase().includes("спб")) {
+            tg.showAlert("Мы работаем только по Санкт-Петербургу!");
+            return;
+        }
+
+        finalData.address = `${city}, ул. ${street}, д. ${house}, кв. ${apt} (Под: ${ent}, Эт: ${floor}${code ? ', Код: ' + code : ''})`;
         finalData.delivery_price = DELIVERY_FEE;
     } else {
-        finalData.address = "САМОВЫВОЗ";
+        finalData.address = "САМОВЫВОЗ (В ресторане)";
         finalData.delivery_price = 0;
     }
 
