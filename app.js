@@ -134,7 +134,11 @@ function updateCartUI() {
 }
 
 // CART VIEW LOGIC
-function showCartView() { document.getElementById('cart-view').classList.add('active'); renderCart(); }
+function showCartView() {
+    console.log("Showing Cart View");
+    document.getElementById('cart-view').classList.add('active');
+    renderCart();
+}
 function hideCartView() { document.getElementById('cart-view').classList.remove('active'); }
 
 function renderCart() {
@@ -207,6 +211,7 @@ async function searchAddress() {
         resDiv.appendChild(div);
     });
     resDiv.style.display = 'block';
+    console.log("Search results displayed:", data.features.length);
 }
 
 function showSuccessView() {
