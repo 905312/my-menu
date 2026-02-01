@@ -306,6 +306,39 @@
             padding-bottom: 100px;
         }
 
+        .view-header {
+            position: relative;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 20px;
+            margin-bottom: 5px;
+            width: 100%;
+        }
+
+        .view-header h2 {
+            margin: 0;
+            font-size: 21px;
+            font-weight: 800;
+            text-align: center;
+            width: 100%;
+            display: block;
+        }
+
+        .back-btn {
+            position: absolute;
+            left: 20px;
+            z-index: 10;
+            font-size: 26px;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
         /* CART FLOAT */
         .cart-float {
             position: fixed;
@@ -357,15 +390,15 @@
 
         .delivery-status-text {
             font-size: 11px;
-            font-weight: 600;
-            text-transform: none;
+            font-weight: 700;
             letter-spacing: 0.3px;
-            opacity: 0.9;
             margin-bottom: 6px;
             z-index: 2;
             display: flex;
             align-items: center;
             gap: 5px;
+            text-shadow: 0.5px 0.5px 0px rgba(0, 0, 0, 0.1);
+            /* Легкая обводка */
         }
 
         .search-results {
@@ -542,9 +575,8 @@
     <!-- VIEW: CART -->
     <div id="cart-view" class="view">
         <div class="view-header">
-            <button onclick="hideCartView()"
-                style="background:none; border:none; color:var(--accent-color); font-size:24px; cursor:pointer;">←</button>
-            <h3 style="flex-grow:1; text-align:center;">Ваша корзина</h3>
+            <div class="back-btn" onclick="hideCartView()">←</div>
+            <h2>Ваша корзина</h2>
         </div>
         <div class="view-content" id="cart-items-list"></div>
         <div
@@ -560,9 +592,8 @@
     <!-- VIEW: ADDRESS / DELIVERY MODE -->
     <div id="address-view" class="view">
         <div class="view-header">
-            <button onclick="hideAddressView()"
-                style="background:none; border:none; color:var(--accent-color); font-size:24px; cursor:pointer;">←</button>
-            <h3 style="flex-grow:1; text-align:center;">Доставка</h3>
+            <div class="back-btn" onclick="hideAddressView()">←</div>
+            <h2>Доставка</h2>
         </div>
         <div class="view-content">
             <div class="mode-toggle">
@@ -632,7 +663,7 @@
         <button class="confirm-btn" onclick="window.Telegram.WebApp.close()">ОТЛИЧНО!</button>
     </div>
 
-    <script src="app.js?v=20.0"></script>
+    <script src="app.js?v=25.0"></script>
 </body>
 
 </html>
