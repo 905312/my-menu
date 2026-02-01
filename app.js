@@ -15,7 +15,6 @@ let searchTerm = "";
 let selectedAddress = "";
 let deliveryMode = 'delivery';
 const DELIVERY_FEE = 99;
-let suggestView = null;
 
 const FOOD_DATA = {
     "🍕 Пицца": [
@@ -47,34 +46,16 @@ const ALL_ITEMS = Object.entries(FOOD_DATA).flatMap(([cat, items]) => items);
 
 function init() {
     if (localStorage.getItem('theme') === 'light') document.body.classList.add('light-theme');
+
+    // ПРОВЕРКА ЗАГРУЗКИ ЯНДЕКСА
+    if (typeof ymaps === 'undefined') {
+        console.error("Yandex API not loaded!");
+    } else {
+        ymaps.ready(() => console.log("Yandex JS API Ready"));
+    }
+
     renderCategories();
     renderMenu();
-
-    // ИНИЦИАЛИЗАЦИЯ ЯНДЕКСА ПРИ СТАРТЕ
-    if (typeof ymaps !== 'undefined') {
-        ymaps.ready(() => {
-            console.log("Yandex Maps Ready");
-            initSuggest();
-        });
-    }
-}
-
-function initSuggest() {
-    if (suggestView) return;
-    try {
-        // ОФИЦИАЛЬНЫЙ ВИДЖЕТ ЯНДЕКСА
-        suggestView = new ymaps.SuggestView('addr-search', {
-            offset: [0, 5],
-            zIndex: 9999999999
-        });
-
-        suggestView.events.add('select', (e) => {
-            selectedAddress = e.get('item').value;
-            console.log("Selected address:", selectedAddress);
-        });
-    } catch (e) {
-        console.error("SuggestView Init Error:", e);
-    }
 }
 
 function renderCategories() {
@@ -178,50 +159,84 @@ function updateFinalButton() {
     let foodSum = 0;
     for (let id in cart) { foodSum += ALL_ITEMS.find(x => x.id === id).price * cart[id]; }
     const total = foodSum + (deliveryMode === 'delivery' ? DELIVERY_FEE : 0);
-    const finalBtn = document.getElementById('final-btn');
-    if (finalBtn) finalBtn.innerText = `ЗАКАЗАТЬ: ${total} ₽`;
+    const fb = document.getElementById('final-btn');
+    if (fb) fb.innerText = `ЗАКАЗАТЬ: ${total} ₽`;
 }
 
 function showAddressView() {
     document.getElementById('address-view').classList.add('active');
     updateFinalButton();
-    if (typeof ymaps !== 'undefined') ymaps.ready(initSuggest);
 }
 function hideAddressView() { document.getElementById('address-view').classList.remove('active'); }
 
-function searchAddress() {
-    // В текущей версии ymaps.SuggestView сам следит за инпутом по ID 'addr-search'
+// --- ПРЯМОЙ ВЫЗОВ SUGGEST (САМАЯ СТАБИЛЬНАЯ ВЕРСИЯ) ---
+let searchDebounce;
+async function searchAddress() {
+    const qInput = document.getElementById('addr-search');
+    const resDiv = document.getElementById('addr-results');
+    if (!qInput || !resDiv) return;
+
+    const query = qInput.value.trim();
+    if (query.length < 3) { resDiv.style.display = 'none'; return; }
+
+    clearTimeout(searchDebounce);
+    searchDebounce = setTimeout(async () => {
+        if (typeof ymaps === 'undefined') return;
+
+        try {
+            // ПРЯМОЙ ЗАПРОС К ДВИЖКУ ЯНДЕКСА
+            const suggestions = await ymaps.suggest(query);
+            if (suggestions && suggestions.length > 0) {
+                resDiv.innerHTML = '';
+                suggestions.slice(0, 5).forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'res-item';
+                    div.innerHTML = `📍 ${item.displayName}`;
+                    div.onclick = (e) => {
+                        e.stopPropagation();
+                        selectedAddress = item.value;
+                        qInput.value = selectedAddress;
+                        resDiv.style.display = 'none';
+                    };
+                    resDiv.appendChild(div);
+                });
+                resDiv.style.display = 'block';
+            } else {
+                resDiv.style.display = 'none';
+            }
+        } catch (e) {
+            console.error("Manual suggest error:", e);
+        }
+    }, 300);
 }
 
+document.addEventListener('click', () => {
+    const rd = document.getElementById('addr-results');
+    if (rd) rd.style.display = 'none';
+});
+
 function finalizeOrder() {
-    const comment = document.getElementById('f-comment').value.trim();
     const manualAddr = document.getElementById('addr-search').value.trim();
+    const comment = document.getElementById('f-comment').value.trim();
+    const apt = document.getElementById('f-apt').value.trim();
+    const ent = document.getElementById('f-ent').value.trim();
+    const floor = document.getElementById('f-floor').value.trim();
 
     let finalData = {
-        item_ids: Object.entries(cart).flatMap(([id, qty]) => Array(qty).fill(id)),
+        items: Object.entries(cart).flatMap(([id, qty]) => Array(qty).fill(id)),
         comment: comment,
         mode: deliveryMode
     };
 
     if (deliveryMode === 'delivery') {
-        const apt = document.getElementById('f-apt').value.trim();
-        const ent = document.getElementById('f-ent').value.trim();
-        const floor = document.getElementById('f-floor').value.trim();
-        let finalAddr = selectedAddress || manualAddr;
+        const finalAddr = selectedAddress || manualAddr;
+        if (!finalAddr || finalAddr.length < 5) { tg.showAlert("Введите полный адрес!"); return; }
+        if (!apt || !ent || !floor) { tg.showAlert("Заполните Квартиру, Подъезд и Этаж!"); return; }
 
-        if (!finalAddr || finalAddr.length < 5) {
-            tg.showAlert("Пожалуйста, укажите полный адрес (Улица, дом)!");
-            return;
-        }
-        if (!apt || !ent || !floor) {
-            tg.showAlert("Заполните: Квартира, Подъезд и Этаж!");
-            return;
-        }
-
-        finalData.address = `${finalAddr} (Кв: ${apt}, Под: ${ent}, Эт: ${floor}${document.getElementById('f-code').value ? ', Код: ' + document.getElementById('f-code').value : ''})`;
+        finalData.address = `${finalAddr} (Кв: ${apt}, Под: ${ent}, Эт: ${floor}${document.getElementById('f-code').value ? ', Домофон: ' + document.getElementById('f-code').value : ''})`;
         finalData.delivery_price = DELIVERY_FEE;
     } else {
-        finalData.address = "САМОВЫВОЗ (В ресторане)";
+        finalData.address = "САМОВЫВОЗ";
         finalData.delivery_price = 0;
     }
 
