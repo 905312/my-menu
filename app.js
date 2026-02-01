@@ -167,29 +167,27 @@ function showAddressView() {
 function hideAddressView() { document.getElementById('address-view').classList.remove('active'); }
 
 // --- УЛЬТРА СТАБИЛЬНЫЙ ПОИСК АДРЕСОВ ---
-let lastQuery = ""
 async function searchAddress() {
     const qInput = document.getElementById('addr-search');
     const resDiv = document.getElementById('addr-results');
     if (!qInput || !resDiv) return;
 
     const query = qInput.value.trim();
-    if (query === lastQuery) return;
-    lastQuery = query;
-
     if (query.length < 3) { resDiv.style.display = 'none'; return; }
 
-    // Используем прямой API поиск Яндекса
-    if (typeof ymaps !== 'undefined') {
+    // Явно используем модуль suggest Яндекса
+    if (typeof ymaps !== 'undefined' && ymaps.suggest) {
         try {
             const results = await ymaps.suggest(query, { results: 5 });
+            console.log("Suggestions found:", results.length);
             if (results && results.length > 0) {
                 resDiv.innerHTML = '';
                 results.forEach(res => {
                     const item = document.createElement('div');
                     item.className = 'res-item';
                     item.innerText = res.displayName;
-                    item.onclick = () => {
+                    item.onclick = (e) => {
+                        e.stopPropagation();
                         selectedAddress = res.value;
                         qInput.value = selectedAddress;
                         resDiv.style.display = 'none';
@@ -203,19 +201,22 @@ async function searchAddress() {
         } catch (e) {
             console.error("Ymaps error:", e);
         }
+    } else {
+        console.warn("Ymaps suggest module NOT ready yet");
     }
 }
 
-// Скрываем поиск при клике вне его
 document.addEventListener('click', (e) => {
-    if (e.target.id !== 'addr-search') {
-        const rd = document.getElementById('addr-results');
-        if (rd) rd.style.display = 'none';
+    const rd = document.getElementById('addr-results');
+    if (rd && e.target.id !== 'addr-search') {
+        rd.style.display = 'none';
     }
 });
 
 function finalizeOrder() {
     const comment = document.getElementById('f-comment').value.trim();
+    const manualAddr = document.getElementById('addr-search').value.trim();
+
     let finalData = {
         items: Object.entries(cart).flatMap(([id, qty]) => Array(qty).fill(id)),
         comment: comment,
@@ -226,9 +227,18 @@ function finalizeOrder() {
         const apt = document.getElementById('f-apt').value.trim();
         const ent = document.getElementById('f-ent').value.trim();
         const floor = document.getElementById('f-floor').value.trim();
-        if (!selectedAddress) { tg.showAlert("Выберите адрес из списка!"); return; }
-        if (!apt || !ent || !floor) { tg.showAlert("Заполните Квартиру, Подъезд и Этаж!"); return; }
-        finalData.address = `${selectedAddress} (Кв: ${apt}, Под: ${ent}, Эт: ${floor}${document.getElementById('f-code').value ? ', Код: ' + document.getElementById('f-code').value : ''})`;
+        let finalAddr = selectedAddress || manualAddr;
+
+        if (!finalAddr || finalAddr.length < 5) {
+            tg.showAlert("Пожалуйста, укажите полный адрес (Улица, дом)!");
+            return;
+        }
+        if (!apt || !ent || !floor) {
+            tg.showAlert("Заполните Квартиру, Подъезд и Этаж!");
+            return;
+        }
+
+        finalData.address = `${finalAddr} (Кв: ${apt}, Под: ${ent}, Эт: ${floor}${document.getElementById('f-code').value ? ', Код: ' + document.getElementById('f-code').value : ''})`;
         finalData.delivery_price = DELIVERY_FEE;
     } else {
         finalData.address = "САМОВЫВОЗ (В ресторане)";

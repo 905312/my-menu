@@ -8,7 +8,7 @@
     <title>RESTO X PREMIUM</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <script src="https://api-maps.yandex.ru/2.1/?apikey=06485227-6fb7-4113-a180-9ee4af1bdb52&lang=ru_RU"
+    <script src="https://api-maps.yandex.ru/2.1/?apikey=06485227-6fb7-4113-a180-9ee4af1bdb52&lang=ru_RU&load=suggest"
         type="text/javascript"></script>
     <style>
         :root {
@@ -336,27 +336,35 @@
             top: 100%;
             left: 0;
             width: 100%;
-            background: var(--surface-accent);
+            background: #1A1A1A;
             border-radius: 14px;
-            border: 1px solid var(--border-color);
+            border: 2px solid #333;
             max-height: 280px;
             overflow-y: auto;
             display: none;
-            z-index: 15000;
+            z-index: 99999;
             box-shadow: 0 15px 50px rgba(0, 0, 0, 0.8);
             margin-top: 5px;
         }
 
         .res-item {
-            padding: 14px 18px;
-            border-bottom: 1px solid var(--border-color);
-            font-size: 14px;
+            padding: 16px 20px;
+            border-bottom: 1px solid #333;
+            font-size: 15px;
             cursor: pointer;
-            color: var(--accent-color);
+            color: #FFF;
+            display: flex;
+            align-items: center;
+        }
+
+        .res-item:before {
+            content: "📍";
+            margin-right: 12px;
+            font-size: 14px;
         }
 
         .res-item:active {
-            background: var(--surface-accent);
+            background: #333;
         }
 
         /* TOGGLE PICKUP/DELIVERY */
@@ -520,7 +528,7 @@
         <button class="confirm-btn" onclick="window.Telegram.WebApp.close()">ОТЛИЧНО!</button>
     </div>
 
-    <script src="app.js"></script>
+    <script src="app.js?v=4.0"></script>
 </body>
 
 </html>
