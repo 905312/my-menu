@@ -13,7 +13,9 @@ let cart = {};
 let currentCategory = "🍕 Пицца";
 let searchTerm = "";
 let deliveryMode = 'delivery';
-const DELIVERY_FEE = 99;
+let currentDeliveryFee = 99;
+const FIXED_DELIVERY_FEE = 99;
+const FREE_DELIVERY_THRESHOLD = 1500;
 const MIN_ORDER_SUM = 700;
 
 // ТЕПЕРЬ С ВАРИАНТАМИ РАЗМЕРОВ
@@ -67,6 +69,18 @@ function init() {
     renderMenu();
 }
 
+function hapticImpact(style = 'light') {
+    if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred(style);
+}
+
+function hapticSelection() {
+    if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged();
+}
+
+function hapticNotification(type = 'success') {
+    if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred(type);
+}
+
 function renderCategories() {
     categoriesContainer.innerHTML = '';
     Object.keys(FOOD_DATA).forEach(cat => {
@@ -74,6 +88,7 @@ function renderCategories() {
         span.className = `cat-item ${cat === currentCategory ? 'active' : ''}`;
         span.innerText = cat;
         span.onclick = () => {
+            hapticSelection();
             currentCategory = cat; searchTerm = "";
             if (searchInput) searchInput.value = "";
             renderCategories(); renderMenu();
@@ -82,7 +97,6 @@ function renderCategories() {
     });
 }
 
-// ХРАНИМ ВЫБРАННЫЙ РАЗМЕР ДЛЯ КАЖДОЙ ПИЦЦЫ ПОКА ОНА В МЕНЮ
 let selectedSizes = {};
 
 function renderMenu() {
@@ -98,7 +112,7 @@ function renderMenu() {
         let cartKey = item.id;
 
         if (item.variants) {
-            const currentSizeIndex = selectedSizes[item.id] !== undefined ? selectedSizes[item.id] : 1; // 30cm по умолчанию
+            const currentSizeIndex = selectedSizes[item.id] !== undefined ? selectedSizes[item.id] : 1;
             const variant = item.variants[currentSizeIndex];
             currentPrice = variant.p;
             cartKey = `${item.id}_${variant.s}`;
@@ -121,6 +135,7 @@ function renderMenu() {
 }
 
 function changeSize(id, idx) {
+    hapticImpact('light');
     selectedSizes[id] = idx;
     renderMenu();
 }
@@ -140,13 +155,16 @@ function getFooterHTML(item, cartKey, price) {
     `;
 }
 
-function addToCart(key) { updateQty(key, 1); }
+function addToCart(key) {
+    hapticImpact('medium');
+    updateQty(key, 1);
+}
 
 function updateQty(key, delta) {
+    if (delta !== 0) hapticImpact('light');
     const newQty = Math.max(0, (cart[key] || 0) + delta);
     if (newQty === 0) delete cart[key]; else cart[key] = newQty;
 
-    // Перерисовываем всё чтобы обновить стэпперы везде
     renderMenu();
     if (document.getElementById('cart-view').classList.contains('active')) renderCart();
     updateCartUI();
@@ -165,7 +183,11 @@ function updateCartUI() {
     if (q > 0) cartFloat.classList.add('active'); else { cartFloat.classList.remove('active'); hideCartView(); }
 }
 
-function showCartView() { document.getElementById('cart-view').classList.add('active'); renderCart(); }
+function showCartView() {
+    hapticImpact('medium');
+    document.getElementById('cart-view').classList.add('active');
+    renderCart();
+}
 function hideCartView() { document.getElementById('cart-view').classList.remove('active'); }
 
 function renderCart() {
@@ -198,6 +220,7 @@ function renderCart() {
 }
 
 function setMode(mode) {
+    hapticImpact('medium');
     deliveryMode = mode;
     document.getElementById('btn-delivery').classList.toggle('active', mode === 'delivery');
     document.getElementById('btn-pickup').classList.toggle('active', mode === 'pickup');
@@ -216,6 +239,7 @@ function updateFinalButton() {
     }
 
     const warn = document.getElementById('min-order-warn');
+    const deliveryBar = document.getElementById('delivery-info-bar');
     const fb = document.getElementById('final-btn');
 
     if (foodSum < MIN_ORDER_SUM) {
@@ -229,11 +253,27 @@ function updateFinalButton() {
         fb.style.pointerEvents = 'auto';
     }
 
-    const total = foodSum + (deliveryMode === 'delivery' ? DELIVERY_FEE : 0);
-    fb.innerText = `ЗАКАЗАТЬ: ${total} ₽`;
+    if (deliveryMode === 'delivery') {
+        if (foodSum >= FREE_DELIVERY_THRESHOLD) {
+            currentDeliveryFee = 0;
+            deliveryBar.innerHTML = "🎉 <b>Ура! У вас бесплатная доставка!</b>";
+            deliveryBar.style.color = "#4cd964";
+        } else {
+            currentDeliveryFee = FIXED_DELIVERY_FEE;
+            deliveryBar.innerHTML = `🚚 Доставка станет бесплатной от <b>${FREE_DELIVERY_THRESHOLD} ₽</b><br>(еще <b>${FREE_DELIVERY_THRESHOLD - foodSum} ₽</b>)`;
+            deliveryBar.style.color = "var(--secondary-text)";
+        }
+    } else {
+        deliveryBar.style.display = 'none';
+        currentDeliveryFee = 0;
+    }
+
+    const total = foodSum + currentDeliveryFee;
+    fb.innerHTML = `ЗАКАЗАТЬ: ${total} ₽ ${currentDeliveryFee === 0 && deliveryMode === 'delivery' ? '<span style="font-size:10px; opacity:0.7;">(Доставка 0₽)</span>' : ''}`;
 }
 
 function showAddressView() {
+    hapticImpact('heavy');
     document.getElementById('address-view').classList.add('active');
     updateFinalButton();
 }
@@ -267,6 +307,7 @@ function finalizeOrder() {
 
     const phoneDigits = phone.replace(/\D/g, "");
     if (phoneDigits.length < 11) {
+        hapticNotification('error');
         tg.showAlert("Введите полный номер телефона (11 цифр)!");
         return;
     }
@@ -280,27 +321,25 @@ function finalizeOrder() {
         const floor = document.getElementById('f-floor').value.trim();
 
         if (!city || !street || !house || !apt || !ent || !floor) {
+            hapticNotification('error');
             tg.showAlert("Заполните все обязательные поля!"); return;
         }
 
         if (!city.toLowerCase().includes("санкт") && !city.toLowerCase().includes("спб")) {
+            hapticNotification('error');
             tg.showAlert("Мы работаем только по Санкт-Петербургу!"); return;
         }
 
         finalData.address = `${city}, ул. ${street}, д. ${house}, кв. ${apt} (Под: ${ent}, Эт: ${floor})`;
-        finalData.delivery_price = DELIVERY_FEE;
+        finalData.delivery_price = currentDeliveryFee;
     } else {
         finalData.address = "САМОВЫВОЗ: Невский пр. 28";
         finalData.delivery_price = 0;
     }
 
+    hapticNotification('success');
     tg.sendData(JSON.stringify(finalData));
-    tg.close(); // Сразу закрываем апп, бот сам пришлет чек
-}
-
-function toggleTheme() {
-    document.body.classList.toggle('light-theme');
-    localStorage.setItem('theme', document.body.classList.contains('light-theme') ? 'light' : 'dark');
+    tg.close();
 }
 
 function filterMenu() { searchTerm = searchInput.value; renderMenu(); }
