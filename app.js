@@ -12,7 +12,7 @@ tg.ready();
 let cart = {};
 let currentCategory = "🍕 Пицца";
 let searchTerm = "";
-let myMap, myPlacemark, selectedAddress = "";
+let selectedAddress = "";
 let deliveryMode = 'delivery';
 const DELIVERY_FEE = 99;
 
@@ -72,11 +72,8 @@ function renderCategories() {
 
 function renderMenu() {
     menuContainer.innerHTML = '';
-    let filteredItems = searchTerm
-        ? ALL_ITEMS.filter(i => i.name.toLowerCase().includes(searchTerm.toLowerCase()))
-        : FOOD_DATA[currentCategory];
-
-    filteredItems.forEach(item => {
+    let items = searchTerm ? ALL_ITEMS.filter(i => i.name.toLowerCase().includes(searchTerm.toLowerCase())) : FOOD_DATA[currentCategory];
+    items.forEach(item => {
         const card = document.createElement('div');
         card.className = 'card';
         card.innerHTML = `
@@ -136,10 +133,7 @@ function renderCart() {
         row.className = 'cart-item-row';
         row.innerHTML = `
             <div class="cart-item-img" style="background-image: url('img/${encodeURIComponent(item.name)}.jpg')"></div>
-            <div class="cart-item-info">
-                <h4>${item.name}</h4>
-                <p>${item.price} ₽</p>
-            </div>
+            <div class="cart-item-info"><h4>${item.name}</h4><p>${item.price} ₽</p></div>
             <div class="stepper">
                 <div class="step-btn" onclick="updateQty('${item.id}', -1)">−</div>
                 <div style="font-weight:700; min-width: 20px; text-align: center;">${cart[id]}</div>
@@ -169,83 +163,56 @@ function updateFinalButton() {
 function showAddressView() {
     document.getElementById('address-view').classList.add('active');
     updateFinalButton();
-    if (typeof ymaps !== 'undefined') {
-        ymaps.ready(() => {
-            initYandexMap();
-            if (myMap) myMap.container.fitToViewport();
-        });
-    }
 }
 function hideAddressView() { document.getElementById('address-view').classList.remove('active'); }
 
-function initYandexMap() {
-    if (myMap) return;
-    myMap = new ymaps.Map("map", {
-        center: [55.7558, 37.6173],
-        zoom: 12,
-        controls: ['zoomControl', 'geolocationControl']
-    });
-
-    myMap.events.add('click', function (e) {
-        const coords = e.get('coords');
-        setMarker(coords);
-        ymaps.geocode(coords).then(res => {
-            selectedAddress = res.geoObjects.get(0).getAddressLine();
-            const input = document.getElementById('addr-search');
-            if (input) input.value = selectedAddress;
-        });
-    });
-}
-
-function setMarker(coords) {
-    if (myPlacemark) myPlacemark.geometry.setCoordinates(coords);
-    else { myPlacemark = new ymaps.Placemark(coords, {}, { preset: 'islands#redIcon' }); myMap.geoObjects.add(myPlacemark); }
-}
-
-// ПРЯМОЙ ПОИСК ЧЕРЕЗ API ЯНДЕКСА
-let searchTimeout;
+// --- УЛЬТРА СТАБИЛЬНЫЙ ПОИСК АДРЕСОВ ---
+let lastQuery = ""
 async function searchAddress() {
-    clearTimeout(searchTimeout);
     const qInput = document.getElementById('addr-search');
     const resDiv = document.getElementById('addr-results');
     if (!qInput || !resDiv) return;
 
-    const q = qInput.value.trim();
-    if (q.length < 3) { resDiv.style.display = 'none'; return; }
+    const query = qInput.value.trim();
+    if (query === lastQuery) return;
+    lastQuery = query;
 
-    searchTimeout = setTimeout(() => {
-        if (typeof ymaps === 'undefined') return;
+    if (query.length < 3) { resDiv.style.display = 'none'; return; }
 
-        ymaps.suggest(q, { results: 5 }).then(items => {
-            if (!items || !items.length) { resDiv.style.display = 'none'; return; }
-
-            resDiv.innerHTML = '';
-            items.forEach(item => {
-                const div = document.createElement('div');
-                div.className = 'res-item';
-                div.innerText = item.displayName;
-                div.onclick = () => {
-                    selectedAddress = item.value;
-                    qInput.value = selectedAddress;
-                    resDiv.style.display = 'none';
-
-                    ymaps.geocode(selectedAddress).then(res => {
-                        const firstGeo = res.geoObjects.get(0);
-                        if (firstGeo) {
-                            const coords = firstGeo.geometry.getCoordinates();
-                            myMap.setCenter(coords, 17);
-                            setMarker(coords);
-                        }
-                    });
-                };
-                resDiv.appendChild(div);
-            });
-            resDiv.style.display = 'block';
-        }).catch(err => {
-            console.error("Suggest error:", err);
-        });
-    }, 400); // Задержка для экономии запросов
+    // Используем прямой API поиск Яндекса
+    if (typeof ymaps !== 'undefined') {
+        try {
+            const results = await ymaps.suggest(query, { results: 5 });
+            if (results && results.length > 0) {
+                resDiv.innerHTML = '';
+                results.forEach(res => {
+                    const item = document.createElement('div');
+                    item.className = 'res-item';
+                    item.innerText = res.displayName;
+                    item.onclick = () => {
+                        selectedAddress = res.value;
+                        qInput.value = selectedAddress;
+                        resDiv.style.display = 'none';
+                    };
+                    resDiv.appendChild(item);
+                });
+                resDiv.style.display = 'block';
+            } else {
+                resDiv.style.display = 'none';
+            }
+        } catch (e) {
+            console.error("Ymaps error:", e);
+        }
+    }
 }
+
+// Скрываем поиск при клике вне его
+document.addEventListener('click', (e) => {
+    if (e.target.id !== 'addr-search') {
+        const rd = document.getElementById('addr-results');
+        if (rd) rd.style.display = 'none';
+    }
+});
 
 function finalizeOrder() {
     const comment = document.getElementById('f-comment').value.trim();
@@ -259,9 +226,9 @@ function finalizeOrder() {
         const apt = document.getElementById('f-apt').value.trim();
         const ent = document.getElementById('f-ent').value.trim();
         const floor = document.getElementById('f-floor').value.trim();
-        if (!selectedAddress) { tg.showAlert("Выберите адрес на карте!"); return; }
+        if (!selectedAddress) { tg.showAlert("Выберите адрес из списка!"); return; }
         if (!apt || !ent || !floor) { tg.showAlert("Заполните Квартиру, Подъезд и Этаж!"); return; }
-        finalData.address = `${selectedAddress} (Квартира: ${apt}, Подъезд: ${ent}, Этаж: ${floor}${document.getElementById('f-code').value ? ', Домофон: ' + document.getElementById('f-code').value : ''})`;
+        finalData.address = `${selectedAddress} (Кв: ${apt}, Под: ${ent}, Эт: ${floor}${document.getElementById('f-code').value ? ', Код: ' + document.getElementById('f-code').value : ''})`;
         finalData.delivery_price = DELIVERY_FEE;
     } else {
         finalData.address = "САМОВЫВОЗ (В ресторане)";
@@ -272,11 +239,5 @@ function finalizeOrder() {
     document.getElementById('success-view').classList.add('active');
 }
 
-function filterMenu() {
-    if (searchInput) {
-        searchTerm = searchInput.value;
-        renderMenu();
-    }
-}
-
+function filterMenu() { searchTerm = searchInput.value; renderMenu(); }
 init();

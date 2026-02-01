@@ -336,15 +336,15 @@
             top: 100%;
             left: 0;
             width: 100%;
-            background: var(--surface-color);
+            background: var(--surface-accent);
             border-radius: 14px;
             border: 1px solid var(--border-color);
-            max-height: 250px;
+            max-height: 280px;
             overflow-y: auto;
             display: none;
-            z-index: 10000;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-            margin-top: -5px;
+            z-index: 15000;
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.8);
+            margin-top: 5px;
         }
 
         .res-item {
@@ -493,14 +493,11 @@
             </div>
 
             <div id="delivery-fields">
-                <div style="position:relative; z-index:2010;">
-                    <input type="text" id="addr-search" class="input-main" placeholder="Введите ваш адрес..."
-                        oninput="searchAddress()">
+                <div style="position:relative; z-index:2010; margin-bottom: 20px;">
+                    <input type="text" id="addr-search" class="input-main"
+                        placeholder="Введите ваш адрес (Улица, дом)..." oninput="searchAddress()" autocomplete="off">
                     <div id="addr-results" class="search-results"></div>
                 </div>
-                <div id="map"></div>
-                <p style="font-size:12px; color:var(--secondary-text); text-align:center; margin-bottom:15px;">Ткните в
-                    дом на карте для выбора адреса</p>
                 <div class="form-grid">
                     <input type="text" id="f-apt" class="input-main" placeholder="Квартира *">
                     <input type="text" id="f-ent" class="input-main" placeholder="Подъезд *">
