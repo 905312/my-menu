@@ -98,7 +98,7 @@ function renderMenu() {
         let cartKey = item.id;
 
         if (item.variants) {
-            const currentSizeIndex = selectedSizes[item.id] || 1; // 30cm по умолчанию
+            const currentSizeIndex = selectedSizes[item.id] !== undefined ? selectedSizes[item.id] : 1; // 30cm по умолчанию
             const variant = item.variants[currentSizeIndex];
             currentPrice = variant.p;
             cartKey = `${item.id}_${variant.s}`;
