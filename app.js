@@ -13,6 +13,7 @@ let cart = {};
 let currentCategory = "🍕 Пицца";
 let searchTerm = "";
 let myMap, myPlacemark, selectedAddress = "";
+let suggestView;
 
 const FOOD_DATA = {
     "🍕 Пицца": [
@@ -144,28 +145,26 @@ function renderCart() {
 
 function showAddressView() {
     document.getElementById('address-view').classList.add('active');
-    // Инициализация Яндекса
     if (typeof ymaps !== 'undefined') {
-        ymaps.ready(initYandexMap);
+        ymaps.ready(() => {
+            initYandexMap();
+            if (myMap) myMap.container.fitToViewport();
+        });
     }
 }
 function hideAddressView() { document.getElementById('address-view').classList.remove('active'); }
 
 function initYandexMap() {
     if (myMap) return;
-    myMap = new ymaps.Map("map", { center: [55.7558, 37.6173], zoom: 12 });
+    myMap = new ymaps.Map("map", { center: [55.7558, 37.6173], zoom: 12, controls: ['zoomControl', 'geolocationControl'] });
 
     // Клик по карте
     myMap.events.add('click', function (e) {
         const coords = e.get('coords');
-        if (myPlacemark) {
-            myPlacemark.geometry.setCoordinates(coords);
-        } else {
-            myPlacemark = new ymaps.Placemark(coords, {}, { preset: 'islands#redIcon' });
-            myMap.geoObjects.add(myPlacemark);
-        }
+        setMarker(coords);
 
-        // РЕВЕРС ГЕОКОДИНГ через Яндекс
+        document.getElementById('addr-search').value = "Определяем адрес...";
+
         ymaps.geocode(coords).then(function (res) {
             const firstGeoObject = res.geoObjects.get(0);
             selectedAddress = firstGeoObject.getAddressLine();
@@ -173,17 +172,26 @@ function initYandexMap() {
         });
     });
 
-    // ПОИСК через Яндекс
-    const suggestView = new ymaps.SuggestView('addr-search');
+    // Поисковые подсказки
+    suggestView = new ymaps.SuggestView('addr-search');
     suggestView.events.add('select', function (e) {
-        selectedAddress = e.get('item').value;
-        ymaps.geocode(selectedAddress).then(function (res) {
+        const addr = e.get('item').value;
+        selectedAddress = addr;
+        ymaps.geocode(addr).then(function (res) {
             const coords = res.geoObjects.get(0).geometry.getCoordinates();
             myMap.setCenter(coords, 17);
-            if (myPlacemark) myPlacemark.geometry.setCoordinates(coords);
-            else { myPlacemark = new ymaps.Placemark(coords, {}, { preset: 'islands#redIcon' }); myMap.geoObjects.add(myPlacemark); }
+            setMarker(coords);
         });
     });
+}
+
+function setMarker(coords) {
+    if (myPlacemark) {
+        myPlacemark.geometry.setCoordinates(coords);
+    } else {
+        myPlacemark = new ymaps.Placemark(coords, {}, { preset: 'islands#redIcon' });
+        myMap.geoObjects.add(myPlacemark);
+    }
 }
 
 function finalizeOrder() {
@@ -193,7 +201,7 @@ function finalizeOrder() {
     const code = document.getElementById('f-code').value.trim();
     const comment = document.getElementById('f-comment').value.trim();
 
-    if (!selectedAddress) { tg.showAlert("Выберите адрес на карте!"); return; }
+    if (!selectedAddress || selectedAddress === "Определяем адрес...") { tg.showAlert("Выберите адрес на карте!"); return; }
     if (!apt || !ent || !floor) { tg.showAlert("Пожалуйста, заполните: Кв, Подъезд и Этаж!"); return; }
 
     const fullAddr = `${selectedAddress} (Кв: ${apt}, Под: ${ent}, Эт: ${floor}${code ? ', Код: ' + code : ''})`;
