@@ -13,7 +13,7 @@ let cart = {};
 let currentCategory = "🍕 Пицца";
 let searchTerm = "";
 let myMap, myPlacemark, selectedAddress = "";
-let deliveryMode = 'delivery'; // 'delivery' or 'pickup'
+let deliveryMode = 'delivery';
 const DELIVERY_FEE = 99;
 
 const FOOD_DATA = {
@@ -22,22 +22,22 @@ const FOOD_DATA = {
         { id: "p2", name: "Карбонара", price: 569, desc: "Бекон, сливочный соус, яйцо" },
         { id: "p3", name: "4 Сыра", price: 519, desc: "Пармезан, чеддер, блю чиз" },
         { id: "p12", name: "Груша горгондзола", price: 569, desc: "Сладкая груша, сыр горгондзола" },
+        { id: "p16", name: "Лосось Руккола", price: 719, desc: "Лосось, сливочный сыр, руккола" },
         { id: "p20", name: "Том ям", price: 679, desc: "Креветки, кальмары, соус том-ям" },
-        { id: "p31", name: "Цезарь", price: 689, desc: "Курица, салат айсберг, соус цезарь" },
-        { id: "p16", name: "С лососем и рукколой", price: 719, desc: "Лосось, сливочный сыр, руккола" }
+        { id: "p31", name: "Цезарь", price: 689, desc: "Курица, салат айсберг, соус цезарь" }
     ],
     "🍔 Бургеры": [
         { id: "b1", name: "Тройной чизбургер", price: 249, desc: "3 котлеты, 3 сыра" },
         { id: "b2", name: "Биг Спешиал", price: 460, desc: "Огромная говяжья котлета" },
         { id: "b5", name: "Биг Хит", price: 303, desc: "Легендарный соус" },
         { id: "b8", name: "Гранд", price: 327, desc: "Классика вкуса" },
+        { id: "b12", name: "Чизбургер", price: 99, desc: "Классический сырный бургер" },
         { id: "b14", name: "Цезарь ролл", price: 230, desc: "Курица в лепешке" }
     ],
     "🥤 Напитки": [
-        { id: "d1", name: "Кола", price: 111, desc: "0.5 л" },
+        { id: "d1", name: "Добрый Кола", price: 111, desc: "0.5 л" },
         { id: "d3", name: "Капучино", price: 159, desc: "Ароматный кофе" },
         { id: "d6", name: "Сок", price: 128, desc: "Апельсиновый 0.5 л" },
-        { id: "d14", name: "Латте", price: 119, desc: "Нежный кофе" },
         { id: "d20", name: "Вода", price: 111, desc: "0.5 л" }
     ]
 };
@@ -89,10 +89,10 @@ function getFooterHTML(item) {
     return `
         <div class="price">${item.price} ₽</div>
         ${qty === 0
-            ? `<div class="qty-btn" onclick="addToCart('${item.id}')">ДОБАВИТЬ</div>`
+            ? `<div class="qty-btn" onclick="addToCart('${item.id}')">В КОРЗИНУ</div>`
             : `<div class="stepper">
                 <div class="step-btn" onclick="updateQty('${item.id}', -1)">−</div>
-                <div style="font-weight:700;">${qty}</div>
+                <div style="font-weight:700; min-width: 20px; text-align: center;">${qty}</div>
                 <div class="step-btn" onclick="updateQty('${item.id}', 1)">+</div>
                </div>`
         }
@@ -126,16 +126,21 @@ function renderCart() {
     let totalS = 0;
     for (let id in cart) {
         const item = ALL_ITEMS.find(x => x.id === id);
+        if (!item) continue;
         totalS += item.price * cart[id];
-        const row = document.createElement('div'); row.className = 'cart-item-row';
+        const row = document.createElement('div');
+        row.className = 'cart-item-row';
         row.innerHTML = `
             <div class="cart-item-img" style="background-image: url('img/${encodeURIComponent(item.name)}.jpg')"></div>
-            <div class="cart-item-info"><h4>${item.name}</h4><p>${item.price} ₽</p></div>
-            <div class="cart-item-stepper"><div class="stepper">
+            <div class="cart-item-info">
+                <h4>${item.name}</h4>
+                <p>${item.price} ₽</p>
+            </div>
+            <div class="stepper">
                 <div class="step-btn" onclick="updateQty('${item.id}', -1)">−</div>
-                <div style="font-weight:700;">${cart[id]}</div>
+                <div style="font-weight:700; min-width: 20px; text-align: center;">${cart[id]}</div>
                 <div class="step-btn" onclick="updateQty('${item.id}', 1)">+</div>
-            </div></div>`;
+            </div>`;
         list.appendChild(row);
     }
     document.getElementById('cart-total-final').innerText = totalS + ' ₽';
@@ -162,7 +167,9 @@ function showAddressView() {
     if (typeof ymaps !== 'undefined') {
         ymaps.ready(() => {
             initYandexMap();
-            if (myMap) myMap.container.fitToViewport();
+            if (myMap) {
+                myMap.container.fitToViewport();
+            }
         });
     }
 }
@@ -170,7 +177,12 @@ function hideAddressView() { document.getElementById('address-view').classList.r
 
 function initYandexMap() {
     if (myMap) return;
-    myMap = new ymaps.Map("map", { center: [55.7558, 37.6173], zoom: 12, controls: ['zoomControl'] });
+    myMap = new ymaps.Map("map", {
+        center: [55.7558, 37.6173],
+        zoom: 12,
+        controls: ['zoomControl', 'geolocationControl']
+    });
+
     myMap.events.add('click', function (e) {
         const coords = e.get('coords');
         setMarker(coords);
@@ -236,9 +248,6 @@ function finalizeOrder() {
     }
 
     tg.sendData(JSON.stringify(finalData));
-    if (deliveryMode === 'pickup') {
-        document.getElementById('success-msg').innerText = "Покажите этот экран на кассе при получении!";
-    }
     document.getElementById('success-view').classList.add('active');
 }
 

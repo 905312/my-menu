@@ -151,6 +151,40 @@
             flex-direction: column;
         }
 
+        .cart-item-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .cart-item-img {
+            width: 70px;
+            height: 70px;
+            border-radius: 16px;
+            background-size: cover;
+            background-position: center;
+            flex-shrink: 0;
+            background-color: var(--surface-accent);
+        }
+
+        .cart-item-info {
+            flex-grow: 1;
+        }
+
+        .cart-item-info h4 {
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .cart-item-info p {
+            font-size: 13px;
+            color: var(--secondary-text);
+            font-weight: 600;
+        }
+
         .card-img {
             width: 100%;
             aspect-ratio: 1;
@@ -178,42 +212,63 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            margin-top: auto;
+            gap: 12px;
+            padding-top: 8px;
         }
 
         .price {
             font-weight: 800;
-            font-size: 15px;
+            font-size: 16px;
+            white-space: nowrap;
         }
 
         .qty-btn {
             background: var(--accent-color);
             color: var(--bg-color);
             font-weight: 800;
-            font-size: 11px;
-            padding: 8px 14px;
-            border-radius: 12px;
+            font-size: 12px;
+            padding: 10px 16px;
+            border-radius: 14px;
             cursor: pointer;
+            transition: 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .qty-btn:active {
+            transform: scale(0.96);
         }
 
         .stepper {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 8px;
             background: var(--surface-accent);
             padding: 4px;
-            border-radius: 12px;
+            border-radius: 14px;
+            border: 1px solid var(--border-color);
         }
 
         .step-btn {
-            width: 28px;
-            height: 28px;
+            width: 32px;
+            height: 32px;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: var(--surface-color);
-            border-radius: 8px;
+            background: var(--accent-color);
+            color: var(--bg-color);
+            border: none;
+            border-radius: 10px;
             font-weight: 800;
             cursor: pointer;
+            font-size: 18px;
+            transition: 0.2s;
+        }
+
+        .step-btn:active {
+            transform: scale(0.9);
+            opacity: 0.8;
         }
 
         /* VIEWS */
