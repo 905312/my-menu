@@ -12,7 +12,7 @@ tg.ready();
 let cart = {};
 let currentCategory = "🍕 Пицца";
 let searchTerm = "";
-let map, marker, selectedAddress = "";
+let myMap, myPlacemark, selectedAddress = "";
 
 const FOOD_DATA = {
     "🍕 Пицца": [
@@ -54,7 +54,6 @@ function toggleTheme() {
 }
 
 function renderCategories() {
-    if (!categoriesContainer) return;
     categoriesContainer.innerHTML = '';
     Object.keys(FOOD_DATA).forEach(cat => {
         const span = document.createElement('span');
@@ -69,15 +68,13 @@ function renderCategories() {
 }
 
 function renderMenu() {
-    if (!menuContainer) return;
     menuContainer.innerHTML = '';
     let items = searchTerm ? ALL_ITEMS.filter(i => i.name.toLowerCase().includes(searchTerm.toLowerCase())) : FOOD_DATA[currentCategory];
     items.forEach(item => {
         const card = document.createElement('div');
         card.className = 'card';
-        const imgUrl = `img/${encodeURIComponent(item.name)}.jpg`;
         card.innerHTML = `
-            <div id="img-${item.id}" class="card-img" style="background-image: url('${imgUrl}')"></div>
+            <div class="card-img" style="background-image: url('img/${encodeURIComponent(item.name)}.jpg')"></div>
             <h3>${item.name}</h3><p>${item.desc}</p>
             <div class="card-footer" id="footer-${item.id}">${getFooterHTML(item)}</div>
         `;
@@ -90,31 +87,23 @@ function getFooterHTML(item) {
     return `
         <div class="price">${item.price} ₽</div>
         ${qty === 0
-            ? `<div class="qty-btn" onclick="addToCart(event, '${item.id}')">ДОБАВИТЬ</div>`
+            ? `<div class="qty-btn" onclick="addToCart('${item.id}')">ДОБАВИТЬ</div>`
             : `<div class="stepper">
                 <div class="step-btn" onclick="updateQty('${item.id}', -1)">−</div>
                 <div style="font-weight:700;">${qty}</div>
-                <div class="step-btn" onclick="addToCart(event, '${item.id}')">+</div>
+                <div class="step-btn" onclick="updateQty('${item.id}', 1)">+</div>
                </div>`
         }
     `;
 }
 
-function addToCart(event, id) {
-    if (event) {
-        event.stopPropagation();
-        event.preventDefault();
-    }
-    updateQty(id, 1);
-}
+function addToCart(id) { updateQty(id, 1); }
 
 function updateQty(id, delta) {
     const newQty = Math.max(0, (cart[id] || 0) + delta);
     if (newQty === 0) delete cart[id]; else cart[id] = newQty;
-
     const f = document.getElementById(`footer-${id}`);
     if (f) f.innerHTML = getFooterHTML(ALL_ITEMS.find(x => x.id === id));
-
     if (document.getElementById('cart-view').classList.contains('active')) renderCart();
     updateCartUI();
 }
@@ -126,10 +115,7 @@ function updateCartUI() {
     if (q > 0) cartFloat.classList.add('active'); else { cartFloat.classList.remove('active'); hideCartView(); }
 }
 
-function showCartView() {
-    document.getElementById('cart-view').classList.add('active');
-    renderCart();
-}
+function showCartView() { document.getElementById('cart-view').classList.add('active'); renderCart(); }
 function hideCartView() { document.getElementById('cart-view').classList.remove('active'); }
 
 function renderCart() {
@@ -144,13 +130,11 @@ function renderCart() {
         row.innerHTML = `
             <div class="cart-item-img" style="background-image: url('img/${encodeURIComponent(item.name)}.jpg')"></div>
             <div class="cart-item-info"><h4>${item.name}</h4><p>${item.price} ₽</p></div>
-            <div class="cart-item-stepper">
-                <div class="stepper">
-                    <div class="step-btn" onclick="updateQty('${item.id}', -1)">−</div>
-                    <div style="font-weight:700;">${cart[id]}</div>
-                    <div class="step-btn" onclick="updateQty('${item.id}', 1)">+</div>
-                </div>
-            </div>
+            <div class="cart-item-stepper"><div class="stepper">
+                <div class="step-btn" onclick="updateQty('${item.id}', -1)">−</div>
+                <div style="font-weight:700;">${cart[id]}</div>
+                <div class="step-btn" onclick="updateQty('${item.id}', 1)">+</div>
+            </div></div>
         `;
         list.appendChild(row);
     }
@@ -159,122 +143,69 @@ function renderCart() {
 }
 
 function showAddressView() {
-    if (Object.keys(cart).length === 0) return;
     document.getElementById('address-view').classList.add('active');
-    setTimeout(() => { if (!map) initMap(); else map.invalidateSize(); }, 100);
+    // Инициализация Яндекса
+    if (typeof ymaps !== 'undefined') {
+        ymaps.ready(initYandexMap);
+    }
 }
 function hideAddressView() { document.getElementById('address-view').classList.remove('active'); }
 
-function initMap() {
-    if (map) return;
-    map = L.map('map').setView([55.7558, 37.6173], 12);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-    map.on('click', async e => {
-        if (marker) marker.setLatLng(e.latlng); else marker = L.marker(e.latlng).addTo(map);
+function initYandexMap() {
+    if (myMap) return;
+    myMap = new ymaps.Map("map", { center: [55.7558, 37.6173], zoom: 12 });
 
-        document.getElementById('addr-search').value = "Определяем адрес...";
-
-        try {
-            // Используем Nominatim для более точного обратного геокодирования в СНГ
-            const resp = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${e.latlng.lat}&lon=${e.latlng.lng}&zoom=18&addressdetails=1`);
-            const data = await resp.json();
-
-            if (data.display_name) {
-                // Пытаемся вытащить короткий адрес
-                const addr = data.address;
-                const road = addr.road || addr.street || addr.pedestrian || "";
-                const house = addr.house_number || "";
-                const city = addr.city || addr.town || addr.village || "";
-
-                const shortAddr = (road ? road + (house ? ", " + house : "") : data.display_name.split(',')[0]);
-                const finalAddr = shortAddr + (city ? ", " + city : "");
-
-                document.getElementById('addr-search').value = finalAddr;
-                selectedAddress = finalAddr;
-            } else {
-                throw new Error("Not found");
-            }
-        } catch (err) {
-            selectedAddress = `${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}`;
-            document.getElementById('addr-search').value = selectedAddress;
+    // Клик по карте
+    myMap.events.add('click', function (e) {
+        const coords = e.get('coords');
+        if (myPlacemark) {
+            myPlacemark.geometry.setCoordinates(coords);
+        } else {
+            myPlacemark = new ymaps.Placemark(coords, {}, { preset: 'islands#redIcon' });
+            myMap.geoObjects.add(myPlacemark);
         }
+
+        // РЕВЕРС ГЕОКОДИНГ через Яндекс
+        ymaps.geocode(coords).then(function (res) {
+            const firstGeoObject = res.geoObjects.get(0);
+            selectedAddress = firstGeoObject.getAddressLine();
+            document.getElementById('addr-search').value = selectedAddress;
+        });
+    });
+
+    // ПОИСК через Яндекс
+    const suggestView = new ymaps.SuggestView('addr-search');
+    suggestView.events.add('select', function (e) {
+        selectedAddress = e.get('item').value;
+        ymaps.geocode(selectedAddress).then(function (res) {
+            const coords = res.geoObjects.get(0).geometry.getCoordinates();
+            myMap.setCenter(coords, 17);
+            if (myPlacemark) myPlacemark.geometry.setCoordinates(coords);
+            else { myPlacemark = new ymaps.Placemark(coords, {}, { preset: 'islands#redIcon' }); myMap.geoObjects.add(myPlacemark); }
+        });
     });
 }
 
-async function searchAddress() {
-    const q = document.getElementById('addr-search').value;
-    const resDiv = document.getElementById('addr-results');
-    if (q.length < 3 || q === "Определяем адрес...") { resDiv.style.display = 'none'; return; }
+function finalizeOrder() {
+    const apt = document.getElementById('f-apt').value.trim();
+    const ent = document.getElementById('f-ent').value.trim();
+    const floor = document.getElementById('f-floor').value.trim();
+    const code = document.getElementById('f-code').value.trim();
+    const comment = document.getElementById('f-comment').value.trim();
 
-    try {
-        const resp = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=5&lang=ru&countrycode=ru`);
-        const data = await resp.json();
+    if (!selectedAddress) { tg.showAlert("Выберите адрес на карте!"); return; }
+    if (!apt || !ent || !floor) { tg.showAlert("Пожалуйста, заполните: Кв, Подъезд и Этаж!"); return; }
 
-        resDiv.innerHTML = '';
-        if (!data.features || data.features.length === 0) { resDiv.style.display = 'none'; return; }
-
-        data.features.forEach(f => {
-            const p = f.properties;
-            const div = document.createElement('div');
-            div.className = 'res-item';
-            let parts = [];
-            if (p.street) parts.push(p.street); else if (p.name) parts.push(p.name);
-            if (p.housenumber) parts.push(p.housenumber);
-            const city = p.city || p.town || p.village; if (city) parts.push(city);
-            const full = parts.join(', ');
-
-            div.innerText = full;
-            // Используем onmousedown + onmouseup для гарантированного срабатывания на ПК
-            div.onmousedown = (e) => {
-                e.preventDefault(); e.stopPropagation();
-                const [lng, lat] = f.geometry.coordinates;
-                map.setView([lat, lng], 17);
-                if (marker) marker.setLatLng([lat, lng]); else marker = L.marker([lat, lng]).addTo(map);
-                document.getElementById('addr-search').value = full;
-                selectedAddress = full;
-                resDiv.style.display = 'none';
-            };
-            resDiv.appendChild(div);
-        });
-        resDiv.style.display = 'block';
-    } catch (e) {
-        console.error("Search error", e);
-    }
-}
-
-function showSuccessView() {
-    if (!selectedAddress || selectedAddress === "Определяем адрес...") return tg.showAlert("Выберите адрес на карте!");
-
-    // ВАЛИДАЦИЯ ОБЯЗАТЕЛЬНЫХ ПОЛЕЙ
-    const apt = document.getElementById('f-apt').value;
-    const ent = document.getElementById('f-ent').value;
-    const floor = document.getElementById('f-floor').value;
-
-    if (!apt || !ent || !floor) {
-        tg.showAlert("Пожалуйста, заполните: Кв, Подъезд и Этаж!");
-        return;
-    }
-
-    document.getElementById('success-view').classList.add('active');
-}
-
-function closeApp() {
-    const apt = document.getElementById('f-apt').value;
-    const ent = document.getElementById('f-ent').value;
-    const floor = document.getElementById('f-floor').value;
-    const code = document.getElementById('f-code').value;
-    const comment = document.getElementById('f-comment').value;
-
-    const full = `${selectedAddress} (Кв: ${apt}, Под: ${ent}, Эт: ${floor}, Код: ${code})`;
-
+    const fullAddr = `${selectedAddress} (Кв: ${apt}, Под: ${ent}, Эт: ${floor}${code ? ', Код: ' + code : ''})`;
     const data = {
         items: Object.entries(cart).flatMap(([id, qty]) => Array(qty).fill(id)),
-        address: full,
+        address: fullAddr,
         comment: comment,
         est_time: 30 + (Object.keys(cart).length * 4)
     };
+
     tg.sendData(JSON.stringify(data));
-    tg.close();
+    document.getElementById('success-view').classList.add('active');
 }
 
 function filterMenu() { searchTerm = searchInput.value; renderMenu(); }

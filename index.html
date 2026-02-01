@@ -8,8 +8,9 @@
     <title>RESTO X PREMIUM</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- ПОДКЛЮЧАЕМ ЯНДЕКС КАРТЫ (Вставь свой ключ вместо ВАШ_КЛЮЧ) -->
+    <script src="https://api-maps.yandex.ru/2.1/?apikey=06485227-6fb7-4113-a180-9ee4af1bdb52&lang=ru_RU"
+        type="text/javascript"></script>
     <style>
         :root {
             --bg-color: #000000;
@@ -162,30 +163,6 @@
             background-position: center;
         }
 
-        .badge {
-            position: absolute;
-            top: 18px;
-            left: 18px;
-            padding: 4px 10px;
-            border-radius: 8px;
-            font-size: 10px;
-            font-weight: 800;
-            color: #fff;
-            z-index: 10;
-        }
-
-        .badge.hit {
-            background: #FF3B30;
-        }
-
-        .badge.new {
-            background: #34C759;
-        }
-
-        .badge.sale {
-            background: #FF9500;
-        }
-
         .card h3 {
             font-size: 14px;
             font-weight: 700;
@@ -239,7 +216,6 @@
             color: var(--accent-color);
         }
 
-        /* VIEWS */
         .view {
             display: none;
             position: fixed;
@@ -274,7 +250,7 @@
             flex-grow: 1;
         }
 
-        /* CART ITEMS */
+        /* CART */
         .cart-item-row {
             display: flex;
             align-items: center;
@@ -297,23 +273,15 @@
 
         .cart-item-info h4 {
             font-size: 14px;
-            margin-bottom: 4px;
         }
 
-        .cart-item-info p {
-            font-size: 12px;
-            color: var(--secondary-text);
-        }
-
-        .cart-item-stepper {
-            width: 100px;
-        }
-
-        /* SEARCH ADDR */
-        .search-addr-container {
-            position: relative;
-            margin-bottom: 15px;
-            z-index: 2010;
+        /* ADDRESS & YANDEX MAP */
+        #map {
+            height: 200px;
+            border-radius: 20px;
+            margin: 15px 0;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
         }
 
         .input-main {
@@ -324,41 +292,8 @@
             border-radius: 14px;
             color: var(--accent-color);
             outline: none;
-        }
-
-        .search-results {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            width: 100%;
-            background: var(--surface-color);
-            border-radius: 14px;
-            border: 1px solid var(--border-color);
-            max-height: 250px;
-            overflow-y: auto;
-            display: none;
-            z-index: 9999;
-            /* Поверх всего */
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-        }
-
-        .res-item {
-            padding: 14px 18px;
-            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 10px;
             font-size: 14px;
-            cursor: pointer;
-            color: var(--accent-color);
-        }
-
-        .res-item:active {
-            background: var(--surface-accent);
-        }
-
-        #map {
-            height: 200px;
-            border-radius: 20px;
-            margin: 15px 0;
-            border: 1px solid var(--border-color);
         }
 
         .form-grid {
@@ -376,13 +311,7 @@
             border-radius: 14px;
             color: var(--accent-color);
             outline: none;
-            margin-top: 10px;
             resize: none;
-            font-size: 14px;
-        }
-
-        .input-main.error {
-            border-color: #FF3B30;
         }
 
         .confirm-btn {
@@ -394,7 +323,8 @@
             font-weight: 800;
             border: none;
             font-size: 15px;
-            margin-top: 20px;
+            margin-top: 10px;
+            cursor: pointer;
         }
 
         .cart-float {
@@ -418,17 +348,6 @@
 
         .cart-float.active {
             transform: translateY(0);
-        }
-
-        .fly-item {
-            position: fixed;
-            z-index: 9999;
-            width: 50px;
-            height: 50px;
-            background-size: cover;
-            border-radius: 50%;
-            pointer-events: none;
-            transition: transform 0.6s cubic-bezier(0.2, 0, 0.2, 1), opacity 0.6s;
         }
     </style>
 </head>
@@ -461,8 +380,7 @@
         </div>
         <div class="view-content">
             <div id="cart-items-list"></div>
-            <div
-                style="margin-top:20px; padding:15px; background:var(--surface-color); border-radius:18px; border:1px solid var(--border-color);">
+            <div style="margin-top:20px; padding:15px; background:var(--surface-color); border-radius:18px;">
                 <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span>Блюда:</span> <span
                         id="cart-total-items">0 ₽</span></div>
                 <div style="display:flex; justify-content:space-between; font-weight:800; font-size:18px;">
@@ -480,14 +398,10 @@
             <h3 style="flex-grow:1; text-align:center;">Доставка</h3>
         </div>
         <div class="view-content">
-            <div class="search-addr-container"><input type="text" id="addr-search" class="input-main"
-                    placeholder="Введите ваш адрес..." oninput="searchAddress()">
-                <div id="addr-results" class="search-results"></div>
-            </div>
+            <input type="text" id="addr-search" class="input-main" placeholder="Введите ваш адрес...">
             <div id="map"></div>
-            <p id="curr-addr"
-                style="font-size:12px; color:var(--secondary-text); text-align:center; margin-bottom:15px;">Укажите
-                точку на карте или через поиск</p>
+            <p style="font-size:12px; color:var(--secondary-text); text-align:center; margin-bottom:15px;">Ткните в дом
+                на карте для выбора адреса</p>
             <div class="form-grid">
                 <input type="text" id="f-apt" class="input-main" placeholder="Кв. *">
                 <input type="text" id="f-ent" class="input-main" placeholder="Под. *">
@@ -496,7 +410,7 @@
                 <textarea id="f-comment" class="input-full" rows="2"
                     placeholder="Комментарий для курьера..."></textarea>
             </div>
-            <button class="confirm-btn" onclick="showSuccessView()">ВСЁ ВЕРНО, ЗАКАЗАТЬ</button>
+            <button class="confirm-btn" onclick="finalizeOrder()">ВЁ ВЕРНО, ЗАКАЗАТЬ</button>
         </div>
     </div>
 
@@ -505,7 +419,7 @@
         <div style="font-size:80px; margin-bottom:20px;">✅</div>
         <h2>Заказ оформлен!</h2>
         <p style="color:var(--secondary-text); margin: 15px 0 30px;">Повар уже начал готовить.</p>
-        <button class="confirm-btn" onclick="closeApp()">ОТЛИЧНО</button>
+        <button class="confirm-btn" onclick="tg.close()">ОТЛИЧНО</button>
     </div>
 
     <script src="app.js"></script>
