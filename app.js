@@ -54,6 +54,7 @@ function toggleTheme() {
 }
 
 function renderCategories() {
+    if (!categoriesContainer) return;
     categoriesContainer.innerHTML = '';
     Object.keys(FOOD_DATA).forEach(cat => {
         const span = document.createElement('span');
@@ -68,6 +69,7 @@ function renderCategories() {
 }
 
 function renderMenu() {
+    if (!menuContainer) return;
     menuContainer.innerHTML = '';
     let items = searchTerm ? ALL_ITEMS.filter(i => i.name.toLowerCase().includes(searchTerm.toLowerCase())) : FOOD_DATA[currentCategory];
     items.forEach(item => {
@@ -99,7 +101,10 @@ function getFooterHTML(item) {
 }
 
 function addToCart(event, id) {
-    if (event) event.stopPropagation();
+    if (event) {
+        event.stopPropagation();
+        event.preventDefault();
+    }
     updateQty(id, 1);
 }
 
@@ -107,7 +112,6 @@ function updateQty(id, delta) {
     const newQty = Math.max(0, (cart[id] || 0) + delta);
     if (newQty === 0) delete cart[id]; else cart[id] = newQty;
 
-    // Обновление UI
     const f = document.getElementById(`footer-${id}`);
     if (f) f.innerHTML = getFooterHTML(ALL_ITEMS.find(x => x.id === id));
 
@@ -157,7 +161,7 @@ function renderCart() {
 function showAddressView() {
     if (Object.keys(cart).length === 0) return;
     document.getElementById('address-view').classList.add('active');
-    initMap();
+    setTimeout(() => { if (!map) initMap(); else map.invalidateSize(); }, 100);
 }
 function hideAddressView() { document.getElementById('address-view').classList.remove('active'); }
 
@@ -168,62 +172,89 @@ function initMap() {
     map.on('click', async e => {
         if (marker) marker.setLatLng(e.latlng); else marker = L.marker(e.latlng).addTo(map);
 
-        // Обратное геокодирование при клике на карту
-        const resp = await fetch(`https://photon.komoot.io/reverse?lon=${e.latlng.lng}&lat=${e.latlng.lat}&lang=ru`);
-        const data = await resp.json();
-        if (data.features && data.features.length > 0) {
-            const p = data.features[0].properties;
-            let parts = [];
-            if (p.street) parts.push(p.street); else if (p.name) parts.push(p.name);
-            if (p.housenumber) parts.push(p.housenumber);
-            const city = p.city || p.town || p.village; if (city) parts.push(city);
-            const full = parts.join(', ');
-            document.getElementById('addr-search').value = full;
-            selectedAddress = full;
-        } else {
+        document.getElementById('addr-search').value = "Определяем адрес...";
+
+        try {
+            // Используем Nominatim для более точного обратного геокодирования в СНГ
+            const resp = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${e.latlng.lat}&lon=${e.latlng.lng}&zoom=18&addressdetails=1`);
+            const data = await resp.json();
+
+            if (data.display_name) {
+                // Пытаемся вытащить короткий адрес
+                const addr = data.address;
+                const road = addr.road || addr.street || addr.pedestrian || "";
+                const house = addr.house_number || "";
+                const city = addr.city || addr.town || addr.village || "";
+
+                const shortAddr = (road ? road + (house ? ", " + house : "") : data.display_name.split(',')[0]);
+                const finalAddr = shortAddr + (city ? ", " + city : "");
+
+                document.getElementById('addr-search').value = finalAddr;
+                selectedAddress = finalAddr;
+            } else {
+                throw new Error("Not found");
+            }
+        } catch (err) {
             selectedAddress = `${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}`;
             document.getElementById('addr-search').value = selectedAddress;
         }
-        document.getElementById('curr-addr').innerText = `Адрес выбран`;
     });
 }
 
 async function searchAddress() {
     const q = document.getElementById('addr-search').value;
     const resDiv = document.getElementById('addr-results');
-    if (q.length < 3) { resDiv.style.display = 'none'; return; }
+    if (q.length < 3 || q === "Определяем адрес...") { resDiv.style.display = 'none'; return; }
 
-    const resp = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=5&lang=ru&countrycode=ru`);
-    const data = await resp.json();
+    try {
+        const resp = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=5&lang=ru&countrycode=ru`);
+        const data = await resp.json();
 
-    resDiv.innerHTML = '';
-    data.features.forEach(f => {
-        const p = f.properties;
-        const div = document.createElement('div');
-        div.className = 'res-item';
-        let parts = [];
-        if (p.street) parts.push(p.street); else if (p.name) parts.push(p.name);
-        if (p.housenumber) parts.push(p.housenumber);
-        const city = p.city || p.town || p.village; if (city) parts.push(city);
-        const full = parts.join(', ');
+        resDiv.innerHTML = '';
+        if (!data.features || data.features.length === 0) { resDiv.style.display = 'none'; return; }
 
-        div.innerText = full;
-        div.onmousedown = (e) => { // Используем onmousedown для ПК
-            e.preventDefault();
-            const [lng, lat] = f.geometry.coordinates;
-            map.setView([lat, lng], 17);
-            if (marker) marker.setLatLng([lat, lng]); else marker = L.marker([lat, lng]).addTo(map);
-            document.getElementById('addr-search').value = full;
-            selectedAddress = full;
-            resDiv.style.display = 'none';
-        };
-        resDiv.appendChild(div);
-    });
-    resDiv.style.display = 'block';
+        data.features.forEach(f => {
+            const p = f.properties;
+            const div = document.createElement('div');
+            div.className = 'res-item';
+            let parts = [];
+            if (p.street) parts.push(p.street); else if (p.name) parts.push(p.name);
+            if (p.housenumber) parts.push(p.housenumber);
+            const city = p.city || p.town || p.village; if (city) parts.push(city);
+            const full = parts.join(', ');
+
+            div.innerText = full;
+            // Используем onmousedown + onmouseup для гарантированного срабатывания на ПК
+            div.onmousedown = (e) => {
+                e.preventDefault(); e.stopPropagation();
+                const [lng, lat] = f.geometry.coordinates;
+                map.setView([lat, lng], 17);
+                if (marker) marker.setLatLng([lat, lng]); else marker = L.marker([lat, lng]).addTo(map);
+                document.getElementById('addr-search').value = full;
+                selectedAddress = full;
+                resDiv.style.display = 'none';
+            };
+            resDiv.appendChild(div);
+        });
+        resDiv.style.display = 'block';
+    } catch (e) {
+        console.error("Search error", e);
+    }
 }
 
 function showSuccessView() {
-    if (!selectedAddress) return tg.showAlert("Выберите адрес на карте!");
+    if (!selectedAddress || selectedAddress === "Определяем адрес...") return tg.showAlert("Выберите адрес на карте!");
+
+    // ВАЛИДАЦИЯ ОБЯЗАТЕЛЬНЫХ ПОЛЕЙ
+    const apt = document.getElementById('f-apt').value;
+    const ent = document.getElementById('f-ent').value;
+    const floor = document.getElementById('f-floor').value;
+
+    if (!apt || !ent || !floor) {
+        tg.showAlert("Пожалуйста, заполните: Кв, Подъезд и Этаж!");
+        return;
+    }
+
     document.getElementById('success-view').classList.add('active');
 }
 
@@ -233,13 +264,6 @@ function closeApp() {
     const floor = document.getElementById('f-floor').value;
     const code = document.getElementById('f-code').value;
     const comment = document.getElementById('f-comment').value;
-
-    // ВАЛИДАЦИЯ
-    if (!selectedAddress) return tg.showAlert("Выберите адрес на карте!");
-    if (!apt || !ent || !floor) {
-        tg.showAlert("Пожалуйста, заполните обязательные поля: Квартира, Подъезд и Этаж!");
-        return;
-    }
 
     const full = `${selectedAddress} (Кв: ${apt}, Под: ${ent}, Эт: ${floor}, Код: ${code})`;
 
