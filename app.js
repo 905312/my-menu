@@ -48,9 +48,11 @@ function init() {
     if (localStorage.getItem('theme') === 'light') document.body.classList.add('light-theme');
 
     // ПРОВЕРКА ЗАГРУЗКИ ЯНДЕКСА
-    if (typeof ymaps !== 'undefined') {
+    if (typeof ymaps === 'undefined') {
+        console.error("Yandex API not loaded!");
+    } else {
         ymaps.ready(() => {
-            console.log("Yandex JS API Ready");
+            console.log("Yandex JS API Ready! (Using Geocoder Engine)");
         });
     }
 
@@ -169,7 +171,7 @@ function showAddressView() {
 }
 function hideAddressView() { document.getElementById('address-view').classList.remove('active'); }
 
-// --- ПРЯМОЙ ВЫЗОВ SUGGEST (САМАЯ СТАБИЛЬНАЯ ВЕРСИЯ) ---
+// --- УЛЬТРА СТАБИЛЬНЫЙ ПОИСК ЧЕРЕЗ ГЕОКОДЕР ---
 let searchDebounce;
 async function searchAddress() {
     const qInput = document.getElementById('addr-search');
@@ -177,27 +179,28 @@ async function searchAddress() {
     if (!qInput || !resDiv) return;
 
     const query = qInput.value.trim();
-    if (query.length < 3) { resDiv.style.display = 'none'; return; }
+    if (query.length < 4) { resDiv.style.display = 'none'; return; }
 
     clearTimeout(searchDebounce);
     searchDebounce = setTimeout(async () => {
-        if (typeof ymaps === 'undefined' || !ymaps.suggest) {
-            console.warn("Yandex Suggest API not available. Check your subscription!");
-            return;
-        }
+        if (typeof ymaps === 'undefined') return;
 
         try {
-            const suggestions = await ymaps.suggest(query);
-            if (suggestions && suggestions.length > 0) {
+            // ИСПОЛЬЗУЕМ ГЕОКОДЕР ВМЕСТО САДЖЕСТА (т.к. статистика по нему идет)
+            const res = await ymaps.geocode(query, { results: 5 });
+            const geoObjects = res.geoObjects.toArray();
+
+            if (geoObjects.length > 0) {
                 resDiv.innerHTML = '';
-                suggestions.slice(0, 5).forEach(item => {
+                geoObjects.forEach(obj => {
+                    const addr = obj.getAddressLine();
                     const div = document.createElement('div');
                     div.className = 'res-item';
-                    div.innerHTML = `📍 ${item.displayName}`;
+                    div.innerHTML = `📍 ${addr}`;
                     div.onclick = (e) => {
                         e.stopPropagation();
-                        selectedAddress = item.value;
-                        qInput.value = selectedAddress;
+                        selectedAddress = addr;
+                        qInput.value = addr;
                         resDiv.style.display = 'none';
                     };
                     resDiv.appendChild(div);
@@ -207,9 +210,9 @@ async function searchAddress() {
                 resDiv.style.display = 'none';
             }
         } catch (e) {
-            console.error("Manual suggest error:", e);
+            console.error("Geocoding search error:", e);
         }
-    }, 300);
+    }, 500);
 }
 
 document.addEventListener('click', () => {
@@ -235,7 +238,7 @@ function finalizeOrder() {
         if (!finalAddr || finalAddr.length < 5) { tg.showAlert("Введите полный адрес!"); return; }
         if (!apt || !ent || !floor) { tg.showAlert("Заполните Квартиру, Подъезд и Этаж!"); return; }
 
-        finalData.address = `${finalAddr} (Кв: ${apt}, Под: ${ent}, Эт: ${floor}${document.getElementById('f-code').value ? ', Домофон: ' + document.getElementById('f-code').value : ''})`;
+        finalData.address = `${finalAddr} (Кв: ${apt}, Под: ${ent}, Эт: ${floor}${document.getElementById('f-code').value ? ', Код: ' + document.getElementById('f-code').value : ''})`;
         finalData.delivery_price = DELIVERY_FEE;
     } else {
         finalData.address = "САМОВЫВОЗ";
