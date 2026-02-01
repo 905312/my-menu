@@ -62,7 +62,8 @@ function renderCategories() {
         span.className = `cat-item ${cat === currentCategory ? 'active' : ''}`;
         span.innerText = cat;
         span.onclick = () => {
-            currentCategory = cat; searchTerm = ""; searchInput.value = "";
+            currentCategory = cat; searchTerm = "";
+            if (searchInput) searchInput.value = "";
             renderCategories(); renderMenu();
         };
         categoriesContainer.appendChild(span);
@@ -71,8 +72,11 @@ function renderCategories() {
 
 function renderMenu() {
     menuContainer.innerHTML = '';
-    let items = searchTerm ? ALL_ITEMS.filter(i => i.name.toLowerCase().includes(searchTerm.toLowerCase())) : FOOD_DATA[currentCategory];
-    items.forEach(item => {
+    let filteredItems = searchTerm
+        ? ALL_ITEMS.filter(i => i.name.toLowerCase().includes(searchTerm.toLowerCase()))
+        : FOOD_DATA[currentCategory];
+
+    filteredItems.forEach(item => {
         const card = document.createElement('div');
         card.className = 'card';
         card.innerHTML = `
@@ -158,7 +162,8 @@ function updateFinalButton() {
     let foodSum = 0;
     for (let id in cart) { foodSum += ALL_ITEMS.find(x => x.id === id).price * cart[id]; }
     const total = foodSum + (deliveryMode === 'delivery' ? DELIVERY_FEE : 0);
-    document.getElementById('final-btn').innerText = `ЗАКАЗАТЬ: ${total} ₽`;
+    const finalBtn = document.getElementById('final-btn');
+    if (finalBtn) finalBtn.innerText = `ЗАКАЗАТЬ: ${total} ₽`;
 }
 
 function showAddressView() {
@@ -167,9 +172,7 @@ function showAddressView() {
     if (typeof ymaps !== 'undefined') {
         ymaps.ready(() => {
             initYandexMap();
-            if (myMap) {
-                myMap.container.fitToViewport();
-            }
+            if (myMap) myMap.container.fitToViewport();
         });
     }
 }
@@ -188,7 +191,8 @@ function initYandexMap() {
         setMarker(coords);
         ymaps.geocode(coords).then(res => {
             selectedAddress = res.geoObjects.get(0).getAddressLine();
-            document.getElementById('addr-search').value = selectedAddress;
+            const input = document.getElementById('addr-search');
+            if (input) input.value = selectedAddress;
         });
     });
 }
@@ -198,32 +202,49 @@ function setMarker(coords) {
     else { myPlacemark = new ymaps.Placemark(coords, {}, { preset: 'islands#redIcon' }); myMap.geoObjects.add(myPlacemark); }
 }
 
+// ПРЯМОЙ ПОИСК ЧЕРЕЗ API ЯНДЕКСА
+let searchTimeout;
 async function searchAddress() {
-    const q = document.getElementById('addr-search').value;
+    clearTimeout(searchTimeout);
+    const qInput = document.getElementById('addr-search');
     const resDiv = document.getElementById('addr-results');
+    if (!qInput || !resDiv) return;
+
+    const q = qInput.value.trim();
     if (q.length < 3) { resDiv.style.display = 'none'; return; }
 
-    ymaps.suggest(q).then(items => {
-        if (!items.length) { resDiv.style.display = 'none'; return; }
-        resDiv.innerHTML = '';
-        items.forEach(item => {
-            const div = document.createElement('div');
-            div.className = 'res-item';
-            div.innerText = item.displayName;
-            div.onclick = () => {
-                selectedAddress = item.value;
-                document.getElementById('addr-search').value = selectedAddress;
-                resDiv.style.display = 'none';
-                ymaps.geocode(selectedAddress).then(res => {
-                    const coords = res.geoObjects.get(0).geometry.getCoordinates();
-                    myMap.setCenter(coords, 17);
-                    setMarker(coords);
-                });
-            };
-            resDiv.appendChild(div);
+    searchTimeout = setTimeout(() => {
+        if (typeof ymaps === 'undefined') return;
+
+        ymaps.suggest(q, { results: 5 }).then(items => {
+            if (!items || !items.length) { resDiv.style.display = 'none'; return; }
+
+            resDiv.innerHTML = '';
+            items.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'res-item';
+                div.innerText = item.displayName;
+                div.onclick = () => {
+                    selectedAddress = item.value;
+                    qInput.value = selectedAddress;
+                    resDiv.style.display = 'none';
+
+                    ymaps.geocode(selectedAddress).then(res => {
+                        const firstGeo = res.geoObjects.get(0);
+                        if (firstGeo) {
+                            const coords = firstGeo.geometry.getCoordinates();
+                            myMap.setCenter(coords, 17);
+                            setMarker(coords);
+                        }
+                    });
+                };
+                resDiv.appendChild(div);
+            });
+            resDiv.style.display = 'block';
+        }).catch(err => {
+            console.error("Suggest error:", err);
         });
-        resDiv.style.display = 'block';
-    });
+    }, 400); // Задержка для экономии запросов
 }
 
 function finalizeOrder() {
@@ -251,5 +272,11 @@ function finalizeOrder() {
     document.getElementById('success-view').classList.add('active');
 }
 
-function filterMenu() { searchTerm = searchInput.value; renderMenu(); }
+function filterMenu() {
+    if (searchInput) {
+        searchTerm = searchInput.value;
+        renderMenu();
+    }
+}
+
 init();
