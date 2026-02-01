@@ -15,6 +15,7 @@ let searchTerm = "";
 let selectedAddress = "";
 let deliveryMode = 'delivery';
 const DELIVERY_FEE = 99;
+let suggestView = null;
 
 const FOOD_DATA = {
     "🍕 Пицца": [
@@ -48,11 +49,32 @@ function init() {
     if (localStorage.getItem('theme') === 'light') document.body.classList.add('light-theme');
     renderCategories();
     renderMenu();
+
+    // ИНИЦИАЛИЗАЦИЯ ЯНДЕКСА ПРИ СТАРТЕ
+    if (typeof ymaps !== 'undefined') {
+        ymaps.ready(() => {
+            console.log("Yandex Maps Ready");
+            initSuggest();
+        });
+    }
 }
 
-function toggleTheme() {
-    document.body.classList.toggle('light-theme');
-    localStorage.setItem('theme', document.body.classList.contains('light-theme') ? 'light' : 'dark');
+function initSuggest() {
+    if (suggestView) return;
+    try {
+        // ОФИЦИАЛЬНЫЙ ВИДЖЕТ ЯНДЕКСА
+        suggestView = new ymaps.SuggestView('addr-search', {
+            offset: [0, 5],
+            zIndex: 9999999999
+        });
+
+        suggestView.events.add('select', (e) => {
+            selectedAddress = e.get('item').value;
+            console.log("Selected address:", selectedAddress);
+        });
+    } catch (e) {
+        console.error("SuggestView Init Error:", e);
+    }
 }
 
 function renderCategories() {
@@ -163,62 +185,20 @@ function updateFinalButton() {
 function showAddressView() {
     document.getElementById('address-view').classList.add('active');
     updateFinalButton();
+    if (typeof ymaps !== 'undefined') ymaps.ready(initSuggest);
 }
 function hideAddressView() { document.getElementById('address-view').classList.remove('active'); }
 
-// --- УЛЬТРА СТАБИЛЬНЫЙ ПОИСК АДРЕСОВ ---
-async function searchAddress() {
-    const qInput = document.getElementById('addr-search');
-    const resDiv = document.getElementById('addr-results');
-    if (!qInput || !resDiv) return;
-
-    const query = qInput.value.trim();
-    if (query.length < 3) { resDiv.style.display = 'none'; return; }
-
-    // Явно используем модуль suggest Яндекса
-    if (typeof ymaps !== 'undefined' && ymaps.suggest) {
-        try {
-            const results = await ymaps.suggest(query, { results: 5 });
-            console.log("Suggestions found:", results.length);
-            if (results && results.length > 0) {
-                resDiv.innerHTML = '';
-                results.forEach(res => {
-                    const item = document.createElement('div');
-                    item.className = 'res-item';
-                    item.innerText = res.displayName;
-                    item.onclick = (e) => {
-                        e.stopPropagation();
-                        selectedAddress = res.value;
-                        qInput.value = selectedAddress;
-                        resDiv.style.display = 'none';
-                    };
-                    resDiv.appendChild(item);
-                });
-                resDiv.style.display = 'block';
-            } else {
-                resDiv.style.display = 'none';
-            }
-        } catch (e) {
-            console.error("Ymaps error:", e);
-        }
-    } else {
-        console.warn("Ymaps suggest module NOT ready yet");
-    }
+function searchAddress() {
+    // В текущей версии ymaps.SuggestView сам следит за инпутом по ID 'addr-search'
 }
-
-document.addEventListener('click', (e) => {
-    const rd = document.getElementById('addr-results');
-    if (rd && e.target.id !== 'addr-search') {
-        rd.style.display = 'none';
-    }
-});
 
 function finalizeOrder() {
     const comment = document.getElementById('f-comment').value.trim();
     const manualAddr = document.getElementById('addr-search').value.trim();
 
     let finalData = {
-        items: Object.entries(cart).flatMap(([id, qty]) => Array(qty).fill(id)),
+        item_ids: Object.entries(cart).flatMap(([id, qty]) => Array(qty).fill(id)),
         comment: comment,
         mode: deliveryMode
     };
@@ -234,7 +214,7 @@ function finalizeOrder() {
             return;
         }
         if (!apt || !ent || !floor) {
-            tg.showAlert("Заполните Квартиру, Подъезд и Этаж!");
+            tg.showAlert("Заполните: Квартира, Подъезд и Этаж!");
             return;
         }
 
@@ -247,6 +227,11 @@ function finalizeOrder() {
 
     tg.sendData(JSON.stringify(finalData));
     document.getElementById('success-view').classList.add('active');
+}
+
+function toggleTheme() {
+    document.body.classList.toggle('light-theme');
+    localStorage.setItem('theme', document.body.classList.contains('light-theme') ? 'light' : 'dark');
 }
 
 function filterMenu() { searchTerm = searchInput.value; renderMenu(); }
