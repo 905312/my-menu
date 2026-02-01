@@ -99,16 +99,7 @@ function getFooterHTML(item) {
 }
 
 function addToCart(event, id) {
-    const btn = event.currentTarget; const rect = btn.getBoundingClientRect(); const cartRect = cartFloat.getBoundingClientRect();
-    const flyer = document.createElement('div'); flyer.className = 'fly-item';
-    flyer.style.backgroundImage = document.getElementById(`img-${id}`)?.style.backgroundImage || '';
-    flyer.style.left = `${rect.left}px`; flyer.style.top = `${rect.top}px`;
-    document.body.appendChild(flyer);
-    setTimeout(() => {
-        flyer.style.transform = `translate(${cartRect.left - rect.left + 20}px, ${cartRect.top - rect.top}px) scale(0.1)`;
-        flyer.style.opacity = '0';
-    }, 10);
-    setTimeout(() => flyer.remove(), 600);
+    if (event) event.stopPropagation();
     updateQty(id, 1);
 }
 
@@ -116,13 +107,11 @@ function updateQty(id, delta) {
     const newQty = Math.max(0, (cart[id] || 0) + delta);
     if (newQty === 0) delete cart[id]; else cart[id] = newQty;
 
-    // Обновляем футер в меню
+    // Обновление UI
     const f = document.getElementById(`footer-${id}`);
     if (f) f.innerHTML = getFooterHTML(ALL_ITEMS.find(x => x.id === id));
 
-    // Если мы в корзине, обновляем её
     if (document.getElementById('cart-view').classList.contains('active')) renderCart();
-
     updateCartUI();
 }
 
@@ -133,9 +122,7 @@ function updateCartUI() {
     if (q > 0) cartFloat.classList.add('active'); else { cartFloat.classList.remove('active'); hideCartView(); }
 }
 
-// CART VIEW LOGIC
 function showCartView() {
-    console.log("Showing Cart View");
     document.getElementById('cart-view').classList.add('active');
     renderCart();
 }
@@ -167,7 +154,6 @@ function renderCart() {
     document.getElementById('cart-total-final').innerText = totalS + ' ₽';
 }
 
-// ADDRESS LOGIC
 function showAddressView() {
     if (Object.keys(cart).length === 0) return;
     document.getElementById('address-view').classList.add('active');
@@ -179,10 +165,26 @@ function initMap() {
     if (map) return;
     map = L.map('map').setView([55.7558, 37.6173], 12);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
-    map.on('click', e => {
+    map.on('click', async e => {
         if (marker) marker.setLatLng(e.latlng); else marker = L.marker(e.latlng).addTo(map);
-        selectedAddress = `${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}`;
-        document.getElementById('curr-addr').innerText = `Координаты: ${selectedAddress}`;
+
+        // Обратное геокодирование при клике на карту
+        const resp = await fetch(`https://photon.komoot.io/reverse?lon=${e.latlng.lng}&lat=${e.latlng.lat}&lang=ru`);
+        const data = await resp.json();
+        if (data.features && data.features.length > 0) {
+            const p = data.features[0].properties;
+            let parts = [];
+            if (p.street) parts.push(p.street); else if (p.name) parts.push(p.name);
+            if (p.housenumber) parts.push(p.housenumber);
+            const city = p.city || p.town || p.village; if (city) parts.push(city);
+            const full = parts.join(', ');
+            document.getElementById('addr-search').value = full;
+            selectedAddress = full;
+        } else {
+            selectedAddress = `${e.latlng.lat.toFixed(6)}, ${e.latlng.lng.toFixed(6)}`;
+            document.getElementById('addr-search').value = selectedAddress;
+        }
+        document.getElementById('curr-addr').innerText = `Адрес выбран`;
     });
 }
 
@@ -190,28 +192,34 @@ async function searchAddress() {
     const q = document.getElementById('addr-search').value;
     const resDiv = document.getElementById('addr-results');
     if (q.length < 3) { resDiv.style.display = 'none'; return; }
+
     const resp = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=5&lang=ru&countrycode=ru`);
     const data = await resp.json();
+
     resDiv.innerHTML = '';
     data.features.forEach(f => {
         const p = f.properties;
-        const div = document.createElement('div'); div.className = 'res-item';
+        const div = document.createElement('div');
+        div.className = 'res-item';
         let parts = [];
         if (p.street) parts.push(p.street); else if (p.name) parts.push(p.name);
         if (p.housenumber) parts.push(p.housenumber);
         const city = p.city || p.town || p.village; if (city) parts.push(city);
-        const full = parts.join(', '); div.innerText = full;
-        div.onclick = () => {
+        const full = parts.join(', ');
+
+        div.innerText = full;
+        div.onmousedown = (e) => { // Используем onmousedown для ПК
+            e.preventDefault();
             const [lng, lat] = f.geometry.coordinates;
             map.setView([lat, lng], 17);
             if (marker) marker.setLatLng([lat, lng]); else marker = L.marker([lat, lng]).addTo(map);
             document.getElementById('addr-search').value = full;
-            selectedAddress = full; resDiv.style.display = 'none';
+            selectedAddress = full;
+            resDiv.style.display = 'none';
         };
         resDiv.appendChild(div);
     });
     resDiv.style.display = 'block';
-    console.log("Search results displayed:", data.features.length);
 }
 
 function showSuccessView() {
@@ -220,12 +228,29 @@ function showSuccessView() {
 }
 
 function closeApp() {
-    const full = `${selectedAddress} (Кв: ${document.getElementById('f-apt').value}, Эт: ${document.getElementById('f-floor').value})`;
+    const apt = document.getElementById('f-apt').value;
+    const ent = document.getElementById('f-ent').value;
+    const floor = document.getElementById('f-floor').value;
+    const code = document.getElementById('f-code').value;
+    const comment = document.getElementById('f-comment').value;
+
+    // ВАЛИДАЦИЯ
+    if (!selectedAddress) return tg.showAlert("Выберите адрес на карте!");
+    if (!apt || !ent || !floor) {
+        tg.showAlert("Пожалуйста, заполните обязательные поля: Квартира, Подъезд и Этаж!");
+        return;
+    }
+
+    const full = `${selectedAddress} (Кв: ${apt}, Под: ${ent}, Эт: ${floor}, Код: ${code})`;
+
     const data = {
         items: Object.entries(cart).flatMap(([id, qty]) => Array(qty).fill(id)),
-        address: full, est_time: 30 + (Object.keys(cart).length * 5)
+        address: full,
+        comment: comment,
+        est_time: 30 + (Object.keys(cart).length * 4)
     };
     tg.sendData(JSON.stringify(data));
+    tg.close();
 }
 
 function filterMenu() { searchTerm = searchInput.value; renderMenu(); }

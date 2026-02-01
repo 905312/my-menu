@@ -367,6 +367,24 @@
             gap: 10px;
         }
 
+        .input-full {
+            grid-column: span 2;
+            width: 100%;
+            padding: 16px;
+            background: var(--surface-accent);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            color: var(--accent-color);
+            outline: none;
+            margin-top: 10px;
+            resize: none;
+            font-size: 14px;
+        }
+
+        .input-main.error {
+            border-color: #FF3B30;
+        }
+
         .confirm-btn {
             width: 100%;
             padding: 18px;
@@ -471,10 +489,12 @@
                 style="font-size:12px; color:var(--secondary-text); text-align:center; margin-bottom:15px;">Укажите
                 точку на карте или через поиск</p>
             <div class="form-grid">
-                <input type="text" id="f-apt" class="input-main" placeholder="Кв.">
-                <input type="text" id="f-ent" class="input-main" placeholder="Под.">
-                <input type="text" id="f-floor" class="input-main" placeholder="Эт.">
+                <input type="text" id="f-apt" class="input-main" placeholder="Кв. *">
+                <input type="text" id="f-ent" class="input-main" placeholder="Под. *">
+                <input type="text" id="f-floor" class="input-main" placeholder="Эт. *">
                 <input type="text" id="f-code" class="input-main" placeholder="Код">
+                <textarea id="f-comment" class="input-full" rows="2"
+                    placeholder="Комментарий для курьера..."></textarea>
             </div>
             <button class="confirm-btn" onclick="showSuccessView()">ВСЁ ВЕРНО, ЗАКАЗАТЬ</button>
         </div>
