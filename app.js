@@ -202,6 +202,7 @@ function updateCartUI() {
             statusLabel.style.color = "inherit";
         }
     } else {
+        progressBar.style.width = '0%';
         cartFloat.classList.remove('active');
         hideCartView();
     }
