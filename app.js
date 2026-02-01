@@ -265,7 +265,11 @@ function finalizeOrder() {
         for (let i = 0; i < cart[key]; i++) finalData.items.push(key);
     }
 
-    if (phone.length < 18) { tg.showAlert("Введите корректный номер телефона!"); return; }
+    const phoneDigits = phone.replace(/\D/g, "");
+    if (phoneDigits.length < 11) {
+        tg.showAlert("Введите полный номер телефона (11 цифр)!");
+        return;
+    }
 
     if (deliveryMode === 'delivery') {
         const city = document.getElementById('f-city').value.trim();
@@ -291,7 +295,7 @@ function finalizeOrder() {
     }
 
     tg.sendData(JSON.stringify(finalData));
-    document.getElementById('success-view').classList.add('active');
+    tg.close(); // Сразу закрываем апп, бот сам пришлет чек
 }
 
 function toggleTheme() {
