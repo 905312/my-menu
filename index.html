@@ -346,13 +346,32 @@
             transition: 0.4s;
         }
 
-        .cart-float.active {
-            transform: translateY(0);
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%;
+            background: var(--surface-color);
+            border-radius: 14px;
+            border: 1px solid var(--border-color);
+            max-height: 250px;
+            overflow-y: auto;
+            display: none;
+            z-index: 10000;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            margin-top: -5px;
         }
 
-        /* ФИКС ДЛЯ ПОДСКАЗОК ЯНДЕКСА */
-        [class*="suggest-list"] {
-            z-index: 10000 !important;
+        .res-item {
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 14px;
+            cursor: pointer;
+            color: var(--accent-color);
+        }
+
+        .res-item:active {
+            background: var(--surface-accent);
         }
     </style>
 </head>
@@ -403,19 +422,35 @@
             <h3 style="flex-grow:1; text-align:center;">Доставка</h3>
         </div>
         <div class="view-content">
-            <input type="text" id="addr-search" class="input-main" placeholder="Введите ваш адрес...">
+            <div style="position:relative; z-index:2010;">
+                <input type="text" id="addr-search" class="input-main" placeholder="Введите ваш адрес..."
+                    oninput="searchAddress()">
+                <div id="addr-results" class="search-results"></div>
+            </div>
             <div id="map"></div>
             <p style="font-size:12px; color:var(--secondary-text); text-align:center; margin-bottom:15px;">Ткните в дом
                 на карте для выбора адреса</p>
             <div class="form-grid">
-                <input type="text" id="f-apt" class="input-main" placeholder="Кв. *">
-                <input type="text" id="f-ent" class="input-main" placeholder="Под. *">
-                <input type="text" id="f-floor" class="input-main" placeholder="Эт. *">
-                <input type="text" id="f-code" class="input-main" placeholder="Код">
+                <input type="text" id="f-apt" class="input-main" placeholder="Квартира *">
+                <input type="text" id="f-ent" class="input-main" placeholder="Подъезд *">
+                <input type="text" id="f-floor" class="input-main" placeholder="Этаж *">
+                <input type="text" id="f-code" class="input-main" placeholder="Домофон">
                 <textarea id="f-comment" class="input-full" rows="2"
                     placeholder="Комментарий для курьера..."></textarea>
             </div>
-            <button class="confirm-btn" onclick="finalizeOrder()">ВЁ ВЕРНО, ЗАКАЗАТЬ</button>
+
+            <div style="margin-top: 15px;">
+                <p style="font-size:13px; font-weight:700; margin-bottom:10px; color:var(--secondary-text);">ВЫБЕРИТЕ
+                    ЗОНУ ДОСТАВКИ:</p>
+                <select id="f-zone" class="input-main" style="background-image:none;">
+                    <option value="Самовывоз|0">📦 Самовывоз (0 ₽)</option>
+                    <option value="Доставка 0-3 км|199">🛵 Доставка 0-3 км (199 ₽)</option>
+                    <option value="Доставка 3-6 км|299">🚚 Доставка 3-6 км (299 ₽)</option>
+                    <option value="Доставка 6-10 км|399">🚀 Доставка 6-10 км (399 ₽)</option>
+                </select>
+            </div>
+
+            <button class="confirm-btn" onclick="finalizeOrder()">ЗАКАЗАТЬ И ОПЛАТИТЬ</button>
         </div>
     </div>
 

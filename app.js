@@ -13,7 +13,6 @@ let cart = {};
 let currentCategory = "🍕 Пицца";
 let searchTerm = "";
 let myMap, myPlacemark, selectedAddress = "";
-let suggestView;
 
 const FOOD_DATA = {
     "🍕 Пицца": [
@@ -152,35 +151,23 @@ function showAddressView() {
         });
     }
 }
-function hideAddressView() { document.getElementById('address-view').classList.remove('active'); }
+function hideAddressView() {
+    document.getElementById('address-view').classList.remove('active');
+    document.getElementById('addr-results').style.display = 'none';
+}
 
 function initYandexMap() {
     if (myMap) return;
     myMap = new ymaps.Map("map", { center: [55.7558, 37.6173], zoom: 12, controls: ['zoomControl', 'geolocationControl'] });
 
-    // Клик по карте
     myMap.events.add('click', function (e) {
         const coords = e.get('coords');
         setMarker(coords);
-
         document.getElementById('addr-search').value = "Определяем адрес...";
-
         ymaps.geocode(coords).then(function (res) {
             const firstGeoObject = res.geoObjects.get(0);
             selectedAddress = firstGeoObject.getAddressLine();
             document.getElementById('addr-search').value = selectedAddress;
-        });
-    });
-
-    // Поисковые подсказки
-    suggestView = new ymaps.SuggestView('addr-search');
-    suggestView.events.add('select', function (e) {
-        const addr = e.get('item').value;
-        selectedAddress = addr;
-        ymaps.geocode(addr).then(function (res) {
-            const coords = res.geoObjects.get(0).geometry.getCoordinates();
-            myMap.setCenter(coords, 17);
-            setMarker(coords);
         });
     });
 }
@@ -194,21 +181,54 @@ function setMarker(coords) {
     }
 }
 
+async function searchAddress() {
+    const q = document.getElementById('addr-search').value;
+    const resDiv = document.getElementById('addr-results');
+    if (q.length < 3 || q === "Определяем адрес...") { resDiv.style.display = 'none'; return; }
+    ymaps.suggest(q).then(function (items) {
+        if (!items.length) { resDiv.style.display = 'none'; return; }
+        resDiv.innerHTML = '';
+        items.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'res-item';
+            div.innerText = item.displayName;
+            div.onclick = () => {
+                const addr = item.value;
+                selectedAddress = addr;
+                document.getElementById('addr-search').value = addr;
+                resDiv.style.display = 'none';
+                ymaps.geocode(addr).then(function (res) {
+                    const coords = res.geoObjects.get(0).geometry.getCoordinates();
+                    myMap.setCenter(coords, 17);
+                    setMarker(coords);
+                });
+            };
+            resDiv.appendChild(div);
+        });
+        resDiv.style.display = 'block';
+    });
+}
+
 function finalizeOrder() {
     const apt = document.getElementById('f-apt').value.trim();
     const ent = document.getElementById('f-ent').value.trim();
     const floor = document.getElementById('f-floor').value.trim();
     const code = document.getElementById('f-code').value.trim();
     const comment = document.getElementById('f-comment').value.trim();
+    const zoneData = document.getElementById('f-zone').value.split('|');
+    const zoneName = zoneData[0];
+    const zonePrice = parseInt(zoneData[1]);
 
     if (!selectedAddress || selectedAddress === "Определяем адрес...") { tg.showAlert("Выберите адрес на карте!"); return; }
-    if (!apt || !ent || !floor) { tg.showAlert("Пожалуйста, заполните: Кв, Подъезд и Этаж!"); return; }
+    if (!apt || !ent || !floor) { tg.showAlert("Пожалуйста, заполните: Квартира, Подъезд и Этаж!"); return; }
 
-    const fullAddr = `${selectedAddress} (Кв: ${apt}, Под: ${ent}, Эт: ${floor}${code ? ', Код: ' + code : ''})`;
+    const fullAddr = `${selectedAddress} (Квартира: ${apt}, Подъезд: ${ent}, Этаж: ${floor}${code ? ', Домофон: ' + code : ''})`;
     const data = {
         items: Object.entries(cart).flatMap(([id, qty]) => Array(qty).fill(id)),
         address: fullAddr,
         comment: comment,
+        delivery_zone: zoneName,
+        delivery_price: zonePrice,
         est_time: 30 + (Object.keys(cart).length * 4)
     };
 
