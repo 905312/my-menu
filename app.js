@@ -180,7 +180,31 @@ function updateCartUI() {
         s += price * cart[key];
     }
     cartQty.innerText = q; cartSum.innerText = s + ' ₽';
-    if (q > 0) cartFloat.classList.add('active'); else { cartFloat.classList.remove('active'); hideCartView(); }
+
+    // PROGRESS BAR LOGIC (Delivery Club style)
+    const progressBar = document.getElementById('cart-progress');
+    const statusLabel = document.getElementById('delivery-status-label');
+
+    if (q > 0) {
+        cartFloat.classList.add('active');
+
+        let percent = (s / FREE_DELIVERY_THRESHOLD) * 100;
+        if (percent > 100) percent = 100;
+
+        progressBar.style.width = percent + '%';
+
+        if (s >= FREE_DELIVERY_THRESHOLD) {
+            statusLabel.innerHTML = "🎉 Бесплатная доставка!";
+            statusLabel.style.color = "#4cd964";
+        } else {
+            const diff = FREE_DELIVERY_THRESHOLD - s;
+            statusLabel.innerHTML = `Доставка 99 ₽ (еще ${diff} ₽ до бесплатной)`;
+            statusLabel.style.color = "inherit";
+        }
+    } else {
+        cartFloat.classList.remove('active');
+        hideCartView();
+    }
 }
 
 function showCartView() {
