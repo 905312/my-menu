@@ -21,7 +21,6 @@
             --header-bg: rgba(0, 0, 0, 0.8);
         }
 
-        /* Элитная светлая тема */
         body.light-theme {
             --bg-color: #F5F5F7;
             --surface-color: #FFFFFF;
@@ -48,12 +47,10 @@
             overflow-x: hidden;
             -webkit-font-smoothing: antialiased;
             transition: background 0.3s, color 0.3s;
-            user-select: none;
-            -webkit-user-select: none;
         }
 
         header {
-            padding: 24px 20px;
+            padding: 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -68,7 +65,6 @@
         header h1 {
             font-size: 18px;
             font-weight: 800;
-            letter-spacing: 1px;
             color: var(--accent-color);
         }
 
@@ -81,7 +77,6 @@
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            font-size: 18px;
         }
 
         .search-container {
@@ -89,14 +84,13 @@
             position: sticky;
             top: 80px;
             z-index: 99;
-            background: var(--header-bg);
-            backdrop-filter: blur(20px);
+            background: var(--bg-color);
         }
 
         .search-inner {
             background: var(--surface-accent);
             border-radius: 14px;
-            padding: 12px 16px;
+            padding: 12px;
             display: flex;
             align-items: center;
             gap: 10px;
@@ -106,13 +100,11 @@
         .search-inner input {
             background: transparent;
             border: none;
-            color: var(--accent-color);
+            color: inherit;
             width: 100%;
             outline: none;
-            font-size: 14px;
         }
 
-        /* КАТЕГОРИИ В ВИДЕ КНОПОК */
         .category-scroll {
             display: flex;
             overflow-x: auto;
@@ -136,14 +128,11 @@
             transition: 0.2s;
             border: 1px solid var(--border-color);
             cursor: pointer;
-            user-select: none;
-            -webkit-user-select: none;
         }
 
         .cat-item.active {
             background: var(--accent-color);
             color: var(--bg-color);
-            border-color: var(--accent-color);
         }
 
         .menu-grid {
@@ -161,7 +150,16 @@
             position: relative;
             display: flex;
             flex-direction: column;
-            min-height: 310px;
+            min-height: 290px;
+        }
+
+        .card-img {
+            width: 100%;
+            aspect-ratio: 1;
+            border-radius: 18px;
+            margin-bottom: 12px;
+            background-size: cover;
+            background-position: center;
         }
 
         .badge {
@@ -174,7 +172,6 @@
             font-weight: 800;
             color: #fff;
             z-index: 10;
-            text-transform: uppercase;
         }
 
         .badge.hit {
@@ -189,22 +186,10 @@
             background: #FF9500;
         }
 
-        .card-img {
-            width: 100%;
-            aspect-ratio: 1;
-            background: var(--surface-accent);
-            border-radius: 18px;
-            margin-bottom: 12px;
-            background-size: cover;
-            background-position: center;
-            border: 1px solid var(--border-color);
-        }
-
         .card h3 {
             font-size: 14px;
             font-weight: 700;
             margin-bottom: 4px;
-            color: var(--accent-color);
         }
 
         .card p {
@@ -213,34 +198,31 @@
             height: 32px;
             overflow: hidden;
             margin-bottom: 12px;
-            line-height: 1.3;
         }
 
         .price {
             font-weight: 800;
             font-size: 16px;
-            margin-bottom: 10px;
-            color: var(--accent-color);
+            margin-bottom: 8px;
         }
 
         .qty-btn {
             background: var(--accent-color);
             color: var(--bg-color);
-            height: 46px;
-            border-radius: 14px;
+            height: 44px;
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 11px;
             font-weight: 800;
             cursor: pointer;
-            letter-spacing: 0.5px;
         }
 
         .stepper {
             background: var(--surface-accent);
-            height: 46px;
-            border-radius: 14px;
+            height: 44px;
+            border-radius: 12px;
             display: flex;
             align-items: center;
             justify-content: space-between;
@@ -248,8 +230,8 @@
         }
 
         .step-btn {
-            width: 44px;
-            height: 44px;
+            width: 40px;
+            height: 40px;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -257,35 +239,7 @@
             color: var(--accent-color);
         }
 
-        .cart-float {
-            position: fixed;
-            bottom: max(20px, env(safe-area-inset-bottom));
-            left: 20px;
-            right: 20px;
-            background: var(--accent-color);
-            color: var(--bg-color);
-            height: 64px;
-            border-radius: 22px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 24px;
-            font-weight: 800;
-            z-index: 1000;
-            transform: translateY(150px);
-            transition: 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
-        }
-
-        .cart-float.active {
-            transform: translateY(0);
-        }
-
-        .cart-float.bump {
-            transform: scale(1.03);
-        }
-
-        /* VIEW SYSTEM */
+        /* VIEWS */
         .view {
             display: none;
             position: fixed;
@@ -320,7 +274,42 @@
             flex-grow: 1;
         }
 
-        /* ADDRESS SEARCH ПОЧИНЕННЫЙ */
+        /* CART ITEMS */
+        .cart-item-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .cart-item-img {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            background-size: cover;
+            background-position: center;
+        }
+
+        .cart-item-info {
+            flex-grow: 1;
+        }
+
+        .cart-item-info h4 {
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .cart-item-info p {
+            font-size: 12px;
+            color: var(--secondary-text);
+        }
+
+        .cart-item-stepper {
+            width: 100px;
+        }
+
+        /* SEARCH ADDR */
         .search-addr-container {
             position: relative;
             margin-bottom: 15px;
@@ -335,7 +324,6 @@
             border-radius: 14px;
             color: var(--accent-color);
             outline: none;
-            font-size: 14px;
         }
 
         .search-results {
@@ -345,41 +333,29 @@
             width: 100%;
             background: var(--surface-color);
             border-radius: 14px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
-            z-index: 2020;
-            max-height: 250px;
+            border: 1px solid var(--border-color);
+            max-height: 200px;
             overflow-y: auto;
             display: none;
-            margin-top: 5px;
-            border: 1px solid var(--border-color);
         }
 
         .res-item {
-            padding: 14px 18px;
+            padding: 12px 18px;
             border-bottom: 1px solid var(--border-color);
-            font-size: 14px;
-            cursor: pointer;
-            color: var(--accent-color);
-        }
-
-        .res-item:active {
-            background: var(--surface-accent);
+            font-size: 13px;
         }
 
         #map {
             height: 200px;
-            width: 100%;
             border-radius: 20px;
             margin: 15px 0;
             border: 1px solid var(--border-color);
-            z-index: 10;
         }
 
         .form-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-top: 15px;
+            gap: 10px;
         }
 
         .confirm-btn {
@@ -392,19 +368,29 @@
             border: none;
             font-size: 15px;
             margin-top: 20px;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
         }
 
-        .success-view {
-            text-align: center;
-            justify-content: center;
-            padding: 40px;
+        .cart-float {
+            position: fixed;
+            bottom: max(20px, env(safe-area-inset-bottom));
+            left: 20px;
+            right: 20px;
+            background: var(--accent-color);
+            color: var(--bg-color);
+            height: 64px;
+            border-radius: 22px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            font-weight: 800;
+            z-index: 1000;
+            transform: translateY(150px);
+            transition: 0.4s;
         }
 
-        .success-icon {
-            font-size: 80px;
-            margin-bottom: 24px;
-            color: #34C759;
+        .cart-float.active {
+            transform: translateY(0);
         }
 
         .fly-item {
@@ -416,70 +402,79 @@
             border-radius: 50%;
             pointer-events: none;
             transition: transform 0.6s cubic-bezier(0.2, 0, 0.2, 1), opacity 0.6s;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
         }
     </style>
 </head>
 
 <body class="dark-theme">
-    <div id="main-view" style="display: block;">
+    <div id="main-view">
         <header>
             <h1>RESTO X PREMIUM</h1>
             <div class="theme-toggle" onclick="toggleTheme()">🌓</div>
         </header>
-
         <div class="search-container">
-            <div class="search-inner">
-                🔍 <input type="text" id="searchInput" placeholder="Поиск деликатесов..." oninput="filterMenu()">
-            </div>
+            <div class="search-inner">🔍 <input type="text" id="searchInput" placeholder="Поиск деликатесов..."
+                    oninput="filterMenu()"></div>
         </div>
-
         <div class="category-scroll" id="categories-container"></div>
         <div class="menu-grid" id="menu-container"></div>
-
-        <div class="cart-float" id="cart-float" onclick="showAddressView()">
-            <div style="display:flex; align-items:center;">
-                <span id="cart-qty"
-                    style="background:var(--bg-color); color:var(--accent-color); padding:4px 10px; border-radius:8px; margin-right:12px;">0</span>
-                <span>ОФОРМИТЬ</span>
-            </div>
+        <div class="cart-float" id="cart-float" onclick="showCartView()">
+            <div style="display:flex; align-items:center;"><span id="cart-qty"
+                    style="background:var(--bg-color); color:var(--accent-color); padding:4px 10px; border-radius:8px; margin-right:12px;">0</span><span>В
+                    КОРЗИНУ</span></div>
             <div id="cart-sum">0 ₽</div>
         </div>
     </div>
 
-    <!-- VIEW: АДРЕС И КАРТА -->
-    <div id="address-view" class="view">
+    <!-- VIEW: КОРЗИНА -->
+    <div id="cart-view" class="view">
         <div class="view-header">
-            <div onclick="hideAddressView()" style="font-size: 24px; cursor: pointer; padding: 5px;">⬅</div>
-            <h3 style="flex-grow:1; text-align:center; margin-right:30px;">Доставка</h3>
+            <div onclick="hideCartView()" style="font-size:24px; cursor:pointer;">⬅</div>
+            <h3 style="flex-grow:1; text-align:center;">Ваш заказ</h3>
         </div>
         <div class="view-content">
-            <div class="search-addr-container">
-                <input type="text" id="addr-search" class="input-main" placeholder="Введите ваш адрес..."
-                    oninput="searchAddress()">
+            <div id="cart-items-list"></div>
+            <div
+                style="margin-top:20px; padding:15px; background:var(--surface-color); border-radius:18px; border:1px solid var(--border-color);">
+                <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span>Блюда:</span> <span
+                        id="cart-total-items">0 ₽</span></div>
+                <div style="display:flex; justify-content:space-between; font-weight:800; font-size:18px;">
+                    <span>Итого:</span> <span id="cart-total-final">0 ₽</span></div>
+            </div>
+            <button class="confirm-btn" onclick="showAddressView()">ПЕРЕЙТИ К ДОСТАВКЕ</button>
+        </div>
+    </div>
+
+    <!-- VIEW: АДРЕС -->
+    <div id="address-view" class="view">
+        <div class="view-header">
+            <div onclick="hideAddressView()" style="font-size:24px; cursor:pointer;">⬅</div>
+            <h3 style="flex-grow:1; text-align:center;">Доставка</h3>
+        </div>
+        <div class="view-content">
+            <div class="search-addr-container"><input type="text" id="addr-search" class="input-main"
+                    placeholder="Введите ваш адрес..." oninput="searchAddress()">
                 <div id="addr-results" class="search-results"></div>
             </div>
             <div id="map"></div>
             <p id="curr-addr"
-                style="font-size:12px; color:var(--secondary-text); margin-bottom:15px; text-align:center;">Выберите
-                точку на карте или воспользуйтесь поиском</p>
-
+                style="font-size:12px; color:var(--secondary-text); text-align:center; margin-bottom:15px;">Укажите
+                точку на карте или через поиск</p>
             <div class="form-grid">
-                <input type="text" id="f-apt" class="input-main" placeholder="Квартира">
-                <input type="text" id="f-ent" class="input-main" placeholder="Подъезд">
-                <input type="text" id="f-floor" class="input-main" placeholder="Этаж">
-                <input type="text" id="f-code" class="input-main" placeholder="Домофон">
+                <input type="text" id="f-apt" class="input-main" placeholder="Кв.">
+                <input type="text" id="f-ent" class="input-main" placeholder="Под.">
+                <input type="text" id="f-floor" class="input-main" placeholder="Эт.">
+                <input type="text" id="f-code" class="input-main" placeholder="Код">
             </div>
-            <button class="confirm-btn" onclick="showSuccessView()">ОПЛАТИТЬ И ЗАКАЗАТЬ</button>
+            <button class="confirm-btn" onclick="showSuccessView()">ВСЁ ВЕРНО, ЗАКАЗАТЬ</button>
         </div>
     </div>
 
     <!-- VIEW: УСПЕХ -->
-    <div id="success-view" class="view success-view">
-        <div class="success-icon">✅</div>
-        <h2 style="font-size: 24px; font-weight: 800;">Заказ оформлен!</h2>
-        <p style="color:var(--secondary-text); margin: 16px 0 32px; font-size: 15px; line-height: 1.5;">Мы уже передали
-            его в ресторан.<br>Ожидайте уведомление от бота.</p>
+    <div id="success-view" class="view" style="text-align:center; justify-content:center; padding:40px;">
+        <div style="font-size:80px; margin-bottom:20px;">✅</div>
+        <h2>Заказ оформлен!</h2>
+        <p style="color:var(--secondary-text); margin: 15px 0 30px;">Повар уже начал готовить.</p>
         <button class="confirm-btn" onclick="closeApp()">ОТЛИЧНО</button>
     </div>
 
