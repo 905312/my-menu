@@ -61,6 +61,31 @@
             border-bottom: 1px solid var(--border-color);
         }
 
+        .header-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .profile-btn {
+            width: 40px;
+            height: 40px;
+            background: var(--surface-accent);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: 1px solid var(--border-color);
+        }
+
+        .history-item {
+            background: var(--surface-accent);
+            padding: 15px;
+            border-radius: 16px;
+            margin-bottom: 12px;
+            border: 1px solid var(--border-color);
+        }
+
         header h1 {
             font-size: 18px;
             font-weight: 800;
@@ -548,7 +573,10 @@
     <div id="main-view">
         <header>
             <h1>RESTO PREMIUM 🍔</h1>
-            <div class="theme-toggle" onclick="toggleTheme()">🌙</div>
+            <div class="header-actions">
+                <div class="profile-btn" onclick="showHistoryView()">👤</div>
+                <div class="theme-toggle" onclick="toggleTheme()">🌙</div>
+            </div>
         </header>
 
         <div class="search-container">
@@ -665,6 +693,17 @@
         <div id="success-msg" style="color:var(--secondary-text); margin: 15px 0 30px;">Бот прислал детали в чат.
         </div>
         <button class="confirm-btn" onclick="window.Telegram.WebApp.close()">ОТЛИЧНО!</button>
+    </div>
+
+    <!-- VIEW: HISTORY (Личный кабинет) -->
+    <div id="history-view" class="view">
+        <div class="view-header">
+            <div class="back-btn" onclick="hideHistoryView()">←</div>
+            <h2>Мои заказы</h2>
+        </div>
+        <div class="view-content" id="history-list">
+            <!-- Сюда JS вставит историю -->
+        </div>
     </div>
 
     <script src="app.js?v=25.0"></script>

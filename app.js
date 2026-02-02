@@ -12,6 +12,17 @@ tg.ready();
 let cart = {};
 let currentCategory = "🍕 Пицца";
 let searchTerm = "";
+let stopList = [];
+
+// Считываем стоп-лист из параметров URL (?stop=p1,b2)
+function checkStopList() {
+    const params = new URLSearchParams(window.location.search);
+    const stopStr = params.get('stop');
+    if (stopStr) {
+        stopList = stopStr.split(',');
+    }
+}
+checkStopList();
 let deliveryMode = 'delivery';
 let currentDeliveryFee = 99;
 const FIXED_DELIVERY_FEE = 99;
@@ -111,6 +122,7 @@ function toggleTheme() {
 
 function init() {
     initTheme();
+    checkStopList(); // Перепроверяем стоп-лист
     renderCategories();
     renderMenu();
 }
@@ -148,6 +160,9 @@ let selectedSizes = {};
 function renderMenu() {
     menuContainer.innerHTML = '';
     let items = searchTerm ? ALL_ITEMS.filter(i => i.name.toLowerCase().includes(searchTerm.toLowerCase())) : FOOD_DATA[currentCategory];
+
+    // Фильтруем стоп-лист
+    items = items.filter(i => !stopList.includes(i.id));
 
     items.forEach(item => {
         const card = document.createElement('div');
@@ -409,9 +424,55 @@ function finalizeOrder() {
     }
 
     hapticNotification('success');
+
+    // Сохраняем заказ в локальную историю (Личный кабинет)
+    saveOrderToLocalHistory(finalData);
+
     tg.sendData(JSON.stringify(finalData));
     tg.close();
 }
+
+// ФУНКЦИИ ДЛЯ ЛИЧНОГО КАБИНЕТА (LOCALSTORAGE)
+function saveOrderToLocalHistory(order) {
+    let history = JSON.parse(localStorage.getItem('order_history') || '[]');
+    order.id = 'RP-' + Math.floor(1000 + Math.random() * 9000);
+    order.date = new Date().toLocaleString();
+    history.unshift(order); // Добавляем в начало
+    localStorage.setItem('order_history', JSON.stringify(history));
+}
+
+function showHistoryView() {
+    hapticImpact('medium');
+    const historyView = document.getElementById('history-view');
+    const list = document.getElementById('history-list');
+    list.innerHTML = '';
+
+    const history = JSON.parse(localStorage.getItem('order_history') || '[]');
+
+    if (history.length === 0) {
+        list.innerHTML = '<p style="text-align:center; padding: 20px; opacity:0.6;">У вас еще нет заказов...</p>';
+    } else {
+        history.forEach(order => {
+            const item = document.createElement('div');
+            item.className = 'history-item';
+            item.innerHTML = `
+                <div style="display:flex; justify-content:space-between; margin-bottom: 5px;">
+                    <b>Заказ ${order.id}</b>
+                    <span style="font-size:12px; opacity:0.6;">${order.date}</span>
+                </div>
+                <div style="font-size:13px; opacity:0.8;">Тип: ${order.mode === 'delivery' ? '🚚 Доставка' : '🏃 Самовывоз'}</div>
+                <div style="font-size:13px; opacity:0.8; margin-bottom: 5px;">${order.address}</div>
+                <div style="border-top:1px solid rgba(255,255,255,0.1); padding-top:5px; font-weight:700;">Статус: ПРИНЯТ ✅</div>
+            `;
+            list.appendChild(item);
+        });
+    }
+
+    historyView.classList.add('active');
+}
+
+function hideHistoryView() { document.getElementById('history-view').classList.remove('active'); }
+
 
 function filterMenu() { searchTerm = searchInput.value; renderMenu(); }
 init();
