@@ -63,8 +63,54 @@ const FOOD_DATA = {
 
 const ALL_ITEMS = Object.entries(FOOD_DATA).flatMap(([cat, items]) => items);
 
+const themeToggleBtn = document.querySelector('.theme-toggle');
+
+function initTheme() {
+    // 1. Сначала проверяем, есть ли сохраненная настройка
+    const savedTheme = localStorage.getItem('theme');
+
+    if (savedTheme) {
+        setTheme(savedTheme);
+    } else {
+        // 2. Если нет, берем тему из Telegram
+        if (tg.colorScheme === 'light') {
+            setTheme('light');
+        } else {
+            setTheme('dark');
+        }
+    }
+}
+
+function setTheme(theme) {
+    if (theme === 'light') {
+        document.body.classList.add('light-theme');
+        themeToggleBtn.innerHTML = '☀️'; // Иконка солнца для светлой темы
+    } else {
+        document.body.classList.remove('light-theme');
+        themeToggleBtn.innerHTML = '🌙'; // Иконка луны для темной темы
+    }
+    localStorage.setItem('theme', theme);
+
+    // Сообщаем Телеграму, что цвет хедера изменился
+    if (tg.setHeaderColor) {
+        tg.setHeaderColor(theme === 'light' ? '#ffffff' : '#000000');
+    }
+    if (tg.setBackgroundColor) {
+        tg.setBackgroundColor(theme === 'light' ? '#f5f5f7' : '#000000');
+    }
+}
+
+function toggleTheme() {
+    hapticImpact('light');
+    if (document.body.classList.contains('light-theme')) {
+        setTheme('dark');
+    } else {
+        setTheme('light');
+    }
+}
+
 function init() {
-    if (localStorage.getItem('theme') === 'light') document.body.classList.add('light-theme');
+    initTheme();
     renderCategories();
     renderMenu();
 }
