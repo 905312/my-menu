@@ -121,7 +121,7 @@ function toggleTheme() {
 }
 
 function init() {
-    console.log("RESTO PREMIUM v2.10 Loaded");
+    console.log("RESTO PREMIUM v2.11 Loaded");
     initTheme();
     checkStopList(); // Перепроверяем стоп-лист
     renderCategories();
