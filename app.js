@@ -170,9 +170,6 @@ function init() {
 
     renderCategories();
     renderMenu();
-
-    // Проверяем обновления каждые 30 секунд для теста
-    setInterval(fetchStopListFromGitHub, 30 * 1000);
 }
 
 // ФУНКЦИЯ ДЛЯ ПОЛУЧЕНИЯ СТОП-ЛИСТА С GITHUB
@@ -575,8 +572,8 @@ function saveOrderToLocalHistory(order) {
     localStorage.setItem('order_history', JSON.stringify(history));
 }
 
-// Проверяем обновления каждые 10 минут
-setInterval(fetchStopListFromGitHub, 10 * 60 * 1000);
+// Проверяем обновления каждые 5 минут
+setInterval(fetchStopListFromGitHub, 5 * 60 * 1000);
 // --- ЛИЧНЫЙ КАБИНЕТ (ИСТОРИЯ ЗАКАЗОВ) ---
 function showHistoryView() {
     hapticImpact('medium');
