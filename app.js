@@ -51,12 +51,15 @@ function mergeHistory(cloudHistory) {
             const cloudStatus = String(ch.status || 'pending').toLowerCase();
             const cloudTs = parseInt(ch.ts || 0);
 
+            // Ищем заказ в локальной истории
             const localIdx = localHistory.findIndex(o => String(o.id) === cloudId);
 
             if (localIdx !== -1) {
+                // ОБНОВЛЯЕМ статус и время, если они изменились
                 localHistory[localIdx].status = cloudStatus;
                 if (cloudTs > 0) localHistory[localIdx].timestamp = cloudTs;
             } else {
+                // ДОБАВЛЯЕМ новый заказ из облака
                 localHistory.unshift({
                     id: cloudId,
                     totalSum: parseInt(ch.sum || 0),
@@ -69,6 +72,7 @@ function mergeHistory(cloudHistory) {
             }
         });
 
+        // Сортировка по времени (новые сверху) и лимит 20
         localHistory.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
         localStorage.setItem('order_history', JSON.stringify(localHistory.slice(0, 20)));
     } catch (e) { console.error("Merge error:", e); }
@@ -307,14 +311,28 @@ function hideAddressView() { document.getElementById('address-view').classList.r
 
 function formatPhone(input) {
     let m = "+7 (___) ___-__-__", i = 0, v = input.value.replace(/\D/g, "");
+    if (v.startsWith('8')) v = '7' + v.substring(1);
+    if (v.startsWith('7')) i = 1;
     input.value = m.replace(/./g, a => /[_\d]/.test(a) && i < v.length ? v.charAt(i++) : i >= v.length ? "" : a);
 }
 
 function finalizeOrder() {
     const ph = document.getElementById('f-phone').value.trim();
     if (ph.replace(/\D/g, "").length < 11) { tg.showAlert("Введите номер!"); return; }
-    let res = { items: [], comment: document.getElementById('f-comment').value.trim(), phone: ph, mode: deliveryMode };
+
+    // Генерируем ID ОДИН РАЗ ЗДЕСЬ
+    const orderId = 'RP-' + Math.floor(1000 + Math.random() * 9000);
+
+    let res = {
+        id: orderId,
+        items: [],
+        comment: document.getElementById('f-comment').value.trim(),
+        phone: ph,
+        mode: deliveryMode
+    };
+
     for (let k in cart) for (let i = 0; i < cart[k]; i++) res.items.push(k);
+
     if (deliveryMode === 'delivery') {
         const c = document.getElementById('f-city').value.trim();
         const st = document.getElementById('f-street').value.trim();
@@ -341,7 +359,6 @@ function finalizeOrder() {
 
 function saveToHistory(order) {
     let h = JSON.parse(localStorage.getItem('order_history') || '[]');
-    order.id = 'RP-' + Math.floor(1000 + Math.random() * 9000);
     order.date = new Date().toLocaleString('ru-RU');
     order.timestamp = Date.now();
     order.status = 'pending';
@@ -371,9 +388,8 @@ function showHistoryView() {
         else {
             const now = Date.now();
             history.forEach((o, i) => {
-                // ЛОГИКА ТАЙМЕРА 70 МИНУТ:
                 let currentStatus = o.status;
-                if (o.timestamp && (o.status === 'accepted' || o.status === 'paid')) {
+                if (o.timestamp && (o.status === 'accepted' || o.status === 'paid' || o.status === 'pending')) {
                     const diffMinutes = Math.floor((now - o.timestamp) / (1000 * 60));
                     if (diffMinutes >= 70) currentStatus = 'delivered';
                 }
@@ -417,7 +433,7 @@ function init() {
     fetchStopList();
     renderCategories();
     renderMenu();
-    setInterval(fetchStopList, 5 * 60 * 1000);
+    setInterval(fetchStopList, 10 * 1000);
 }
 
 init();
