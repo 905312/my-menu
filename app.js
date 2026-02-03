@@ -43,29 +43,33 @@ function checkParams() {
 function mergeHistory(cloudHistory) {
     if (!Array.isArray(cloudHistory)) return;
     try {
-        let localHistory = [];
-        try {
-            localHistory = JSON.parse(localStorage.getItem('order_history') || '[]');
-            if (!Array.isArray(localHistory)) localHistory = [];
-        } catch (e) { localHistory = []; }
+        let localHistory = JSON.parse(localStorage.getItem('order_history') || '[]');
+        if (!Array.isArray(localHistory)) localHistory = [];
 
-        const formattedCloud = cloudHistory.map(ch => ({
-            id: String(ch.id || 'N/A'),
-            totalSum: parseInt(ch.sum || 0),
-            status: String(ch.status || 'pending').toLowerCase() === 'paid' ? 'accepted' : String(ch.status || 'pending'),
-            date: String(ch.date || ''),
-            itemsDetails: null,
-            isCloud: true
-        }));
+        cloudHistory.forEach(ch => {
+            const cloudId = String(ch.id);
+            const cloudStatus = String(ch.status || 'pending').toLowerCase();
+            const cloudTs = parseInt(ch.ts || 0);
 
-        const localIds = new Set(localHistory.map(o => o.id));
-        formattedCloud.forEach(order => {
-            if (!localIds.has(order.id)) {
-                localHistory.unshift(order);
+            const localIdx = localHistory.findIndex(o => String(o.id) === cloudId);
+
+            if (localIdx !== -1) {
+                localHistory[localIdx].status = cloudStatus;
+                if (cloudTs > 0) localHistory[localIdx].timestamp = cloudTs;
+            } else {
+                localHistory.unshift({
+                    id: cloudId,
+                    totalSum: parseInt(ch.sum || 0),
+                    status: cloudStatus,
+                    timestamp: cloudTs,
+                    date: new Date(cloudTs || Date.now()).toLocaleString('ru-RU'),
+                    itemsDetails: null,
+                    isCloud: true
+                });
             }
         });
 
-        localHistory.sort((a, b) => String(b.id).localeCompare(String(a.id)));
+        localHistory.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
         localStorage.setItem('order_history', JSON.stringify(localHistory.slice(0, 20)));
     } catch (e) { console.error("Merge error:", e); }
 }
@@ -312,9 +316,22 @@ function finalizeOrder() {
     let res = { items: [], comment: document.getElementById('f-comment').value.trim(), phone: ph, mode: deliveryMode };
     for (let k in cart) for (let i = 0; i < cart[k]; i++) res.items.push(k);
     if (deliveryMode === 'delivery') {
-        const c = document.getElementById('f-city').value.trim(), st = document.getElementById('f-street').value.trim(), h = document.getElementById('f-house').value.trim(), a = document.getElementById('f-apt').value.trim();
+        const c = document.getElementById('f-city').value.trim();
+        const st = document.getElementById('f-street').value.trim();
+        const h = document.getElementById('f-house').value.trim();
+        const a = document.getElementById('f-apt').value.trim();
+        const ent = document.getElementById('f-ent').value.trim();
+        const floor = document.getElementById('f-floor').value.trim();
+        const code = document.getElementById('f-code').value.trim();
+
         if (!c || !st || !h || !a) { tg.showAlert("Заполните адрес!"); return; }
-        res.address = `${c}, ул. ${st}, д. ${h}, кв. ${a}`;
+
+        let addr = `${c}, ул. ${st}, д. ${h}, кв. ${a}`;
+        if (ent) addr += `, под. ${ent}`;
+        if (floor) addr += `, эт. ${floor}`;
+        if (code) addr += `, код ${code}`;
+
+        res.address = addr;
         res.delivery_price = (cartSum.innerText.replace(/\D/g, '') < FREE_DELIVERY_THRESHOLD ? FIXED_DELIVERY_FEE : 0);
     } else { res.address = "САМОВЫВОЗ: Невский пр. 28"; res.delivery_price = 0; }
 
@@ -326,6 +343,7 @@ function saveToHistory(order) {
     let h = JSON.parse(localStorage.getItem('order_history') || '[]');
     order.id = 'RP-' + Math.floor(1000 + Math.random() * 9000);
     order.date = new Date().toLocaleString('ru-RU');
+    order.timestamp = Date.now();
     order.status = 'pending';
     let s = 0; order.itemsDetails = [];
     order.items.forEach(k => {
@@ -351,13 +369,29 @@ function showHistoryView() {
         const history = JSON.parse(localStorage.getItem('order_history') || '[]');
         if (history.length === 0) { list.innerHTML = '<p style="text-align:center; padding:40px; opacity:0.5;">У вас нет заказов</p>'; }
         else {
+            const now = Date.now();
             history.forEach((o, i) => {
+                // ЛОГИКА ТАЙМЕРА 70 МИНУТ:
+                let currentStatus = o.status;
+                if (o.timestamp && (o.status === 'accepted' || o.status === 'paid')) {
+                    const diffMinutes = Math.floor((now - o.timestamp) / (1000 * 60));
+                    if (diffMinutes >= 70) currentStatus = 'delivered';
+                }
+
                 const card = document.createElement('div');
                 card.className = 'history-card-v2';
-                const map = { 'pending': '⏳ ОЖИДАЕТ', 'accepted': '✅ ПРИНЯТ', 'paid': '✅ ОПЛАЧЕН', 'delivered': '🎉 ДОСТАВЛЕНО', 'cancelled': '❌ ОТМЕНЕН' };
+                const map = {
+                    'pending': '⏳ ОЖИДАЕТ',
+                    'accepted': '✅ ПРИНЯТ',
+                    'paid': '✅ ОПЛАЧЕН',
+                    'delivered': '🎉 ДОСТАВЛЕНО',
+                    'cancelled': '❌ ОТМЕНЕН',
+                    'refunded': '💰 ВОЗВРАТ',
+                    'resolved': '💎 РЕШЕНО'
+                };
                 const det = o.itemsDetails ? o.itemsDetails.map(it => `<div style="display:flex; justify-content:space-between; font-size:12px;"><span>${it.name}</span><b>${it.price}₽</b></div>`).join('') : 'Детали в чате';
                 card.innerHTML = `<div style="display:flex; justify-content:space-between; margin-bottom:8px;"><b>Заказ ${o.id}</b><b>${o.totalSum}₽</b></div>
-                    <div style="font-size:10px; opacity:0.5; margin-bottom:10px;">${o.date} | ${map[o.status] || o.status}</div>
+                    <div style="font-size:10px; opacity:0.5; margin-bottom:10px;">${o.date} | ${map[currentStatus] || currentStatus}</div>
                     <div style="background:rgba(255,255,255,0.03); padding:10px; border-radius:10px;">${det}</div>
                     <button class="reorder-btn-v2" onclick="reorder(${i})">ПОВТОРИТЬ</button>`;
                 list.appendChild(card);
