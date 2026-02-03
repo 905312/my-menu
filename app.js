@@ -236,6 +236,11 @@ function setMode(m) {
     document.getElementById('btn-pickup').classList.toggle('active', m === 'pickup');
     document.getElementById('delivery-fields').style.display = (m === 'delivery' ? 'block' : 'none');
     document.getElementById('pickup-info').style.display = (m === 'pickup' ? 'block' : 'none');
+
+    // Скрываем инфо о бесплатной доставке для самовывоза
+    const infoBar = document.getElementById('delivery-info-bar');
+    if (infoBar) infoBar.style.display = (m === 'delivery' ? 'block' : 'none');
+
     updateFinalBtn();
 }
 
