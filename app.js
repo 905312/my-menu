@@ -121,11 +121,39 @@ function toggleTheme() {
 }
 
 function init() {
-    console.log("RESTO PREMIUM v2.11 Loaded");
+    console.log("RESTO PREMIUM v2.12 Loaded");
     initTheme();
-    checkStopList(); // Перепроверяем стоп-лист
+    checkStopList(); // Берем данные из URL (как первичные)
+
+    // СРАЗУ запрашиваем свежий список с GitHub
+    fetchStopListFromGitHub();
+
     renderCategories();
     renderMenu();
+
+    // Проверяем обновления каждые 7 минут
+    setInterval(fetchStopListFromGitHub, 7 * 60 * 1000);
+}
+
+// ФУНКЦИЯ ДЛЯ ПОЛУЧЕНИЯ СТОП-ЛИСТА С GITHUB
+async function fetchStopListFromGitHub() {
+    console.log("🔄 Синхронизация стоп-листа с WhatsApp/GitHub...");
+    try {
+        // Добавляем timestamp для обхода кэша гитхаба
+        const timestamp = new Date().getTime();
+        const response = await fetch(`stoplist.json?v=${timestamp}`);
+
+        if (response.ok) {
+            const githubStopList = await response.json();
+            if (Array.isArray(githubStopList)) {
+                console.log("✅ Стоп-лист синхронизирован с GitHub:", githubStopList);
+                stopList = githubStopList;
+                renderMenu();
+            }
+        }
+    } catch (e) {
+        console.log("ℹ️ Файл stoplist.json еще не создан или недоступен:", e);
+    }
 }
 
 function hapticImpact(style = 'light') {
@@ -162,12 +190,10 @@ function renderMenu() {
     menuContainer.innerHTML = '';
     let items = searchTerm ? ALL_ITEMS.filter(i => i.name.toLowerCase().includes(searchTerm.toLowerCase())) : FOOD_DATA[currentCategory];
 
-    // Фильтруем стоп-лист
-    items = items.filter(i => !stopList.includes(i.id));
-
     items.forEach(item => {
         const card = document.createElement('div');
-        card.className = 'card';
+        const isUnavailable = stopList.includes(item.id);
+        card.className = isUnavailable ? 'card unavailable' : 'card';
 
         let sizePickerHTML = '';
         let currentPrice = item.price;
@@ -182,15 +208,19 @@ function renderMenu() {
             sizePickerHTML = `<div class="size-picker">` +
                 item.variants.map((v, idx) => `
                     <div class="size-btn ${idx === currentSizeIndex ? 'active' : ''}" 
-                         onclick="changeSize('${item.id}', ${idx})">${v.s}см</div>
+                         onclick="${isUnavailable ? '' : `changeSize('${item.id}', ${idx})`}">${v.s}см</div>
                 `).join('') + `</div>`;
         }
 
+        const unavailableBadge = isUnavailable ? '<div class="unavailable-badge">🚫 НЕТ В НАЛИЧИИ</div>' : '';
+
         card.innerHTML = `
-            <div class="card-img" style="background-image: url('img/${encodeURIComponent(item.name)}.jpg')"></div>
+            <div class="card-img" style="background-image: url('img/${encodeURIComponent(item.name)}.jpg')">
+                ${unavailableBadge}
+            </div>
             <h3>${item.name}</h3><p>${item.desc}</p>
             ${sizePickerHTML}
-            <div class="card-footer" id="footer-${cartKey}">${getFooterHTML(item, cartKey, currentPrice)}</div>
+            <div class="card-footer" id="footer-${cartKey}">${getFooterHTML(item, cartKey, currentPrice, isUnavailable)}</div>
         `;
         menuContainer.appendChild(card);
     });
@@ -202,7 +232,14 @@ function changeSize(id, idx) {
     renderMenu();
 }
 
-function getFooterHTML(item, cartKey, price) {
+function getFooterHTML(item, cartKey, price, isUnavailable = false) {
+    if (isUnavailable) {
+        return `
+            <div class="price" style="opacity: 0.5;">${price} ₽</div>
+            <div class="qty-btn unavailable-btn">НЕТ В НАЛИЧИИ</div>
+        `;
+    }
+
     const qty = cart[cartKey] || 0;
     return `
         <div class="price">${price} ₽</div>
@@ -424,6 +461,29 @@ function finalizeOrder() {
         finalData.delivery_price = 0;
     }
 
+    // Проверяем стоп-лист перед отправкой заказа
+    const unavailableItems = [];
+    for (let key in cart) {
+        // Извлекаем ID товара (например, из "p1_30" получаем "p1")
+        const itemId = key.split('_')[0];
+        if (stopList.includes(itemId)) {
+            // Находим название товара
+            const item = ALL_ITEMS.find(i => i.id === itemId);
+            if (item) {
+                const size = key.includes('_') ? key.split('_')[1] + 'см' : '';
+                unavailableItems.push(`${item.name}${size ? ' ' + size : ''}`);
+            }
+        }
+    }
+
+    // Если есть недоступные товары - показываем уведомление
+    if (unavailableItems.length > 0) {
+        hapticNotification('error');
+        const itemsList = unavailableItems.map(name => `🚫 ${name}`).join('\n');
+        tg.showAlert(`⚠️ Некоторые позиции закончились:\n\n${itemsList}\n\nПожалуйста, удалите их из корзины и попробуйте снова.`);
+        return;
+    }
+
     hapticNotification('success');
 
     // Сохраняем заказ в локальную историю (Личный кабинет)
@@ -437,8 +497,41 @@ function finalizeOrder() {
 function saveOrderToLocalHistory(order) {
     let history = JSON.parse(localStorage.getItem('order_history') || '[]');
     order.id = 'RP-' + Math.floor(1000 + Math.random() * 9000);
-    order.date = new Date().toLocaleString();
+    order.date = new Date().toLocaleString('ru-RU', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+    order.timestamp = Date.now(); // Для автообновления статуса
+    order.status = 'pending'; // pending -> accepted -> delivered
+
+    // Рассчитываем общую сумму заказа
+    let totalSum = 0;
+    order.itemsDetails = [];
+
+    order.items.forEach(itemKey => {
+        const [id, size] = itemKey.split('_');
+        const item = ALL_ITEMS.find(x => x.id === id);
+        if (item) {
+            const price = size ? item.variants.find(v => v.s == size).p : item.price;
+            const sizeText = size ? ` ${size}см` : '';
+            order.itemsDetails.push({
+                name: item.name + sizeText,
+                price: price
+            });
+            totalSum += price;
+        }
+    });
+
+    order.totalSum = totalSum + (order.delivery_price || 0);
+
     history.unshift(order); // Добавляем в начало
+
+    // Ограничиваем историю 20 заказами
+    if (history.length > 20) history = history.slice(0, 20);
+
     localStorage.setItem('order_history', JSON.stringify(history));
 }
 
@@ -448,28 +541,127 @@ function showHistoryView() {
     const list = document.getElementById('history-list');
     list.innerHTML = '';
 
-    const history = JSON.parse(localStorage.getItem('order_history') || '[]');
+    let history = JSON.parse(localStorage.getItem('order_history') || '[]');
+
+    // Автообновление статусов (через 75 минут после создания)
+    const now = Date.now();
+    let updated = false;
+    history = history.map(order => {
+        if (order.status === 'pending' && order.timestamp) {
+            const elapsed = (now - order.timestamp) / 1000 / 60; // минуты
+            if (elapsed >= 75) {
+                order.status = 'delivered';
+                updated = true;
+            }
+        }
+        return order;
+    });
+
+    if (updated) {
+        localStorage.setItem('order_history', JSON.stringify(history));
+    }
 
     if (history.length === 0) {
-        list.innerHTML = '<p style="text-align:center; padding: 20px; opacity:0.6;">У вас еще нет заказов...</p>';
+        list.innerHTML = '<p style="text-align:center; padding: 40px 20px; opacity:0.5; font-size:14px;">📦 У вас еще нет заказов...</p>';
     } else {
-        history.forEach(order => {
+        history.forEach((order, index) => {
             const item = document.createElement('div');
             item.className = 'history-item';
+
+            // Определяем статус
+            const statusMap = {
+                'pending': { text: '⏳ ОЖИДАЕТ ПОДТВЕРЖДЕНИЯ', color: '#FF9500' },
+                'accepted': { text: '✅ ПРИНЯТ', color: '#34C759' },
+                'delivered': { text: '🎉 ДОСТАВЛЕНО', color: '#007AFF' },
+                'cancelled': { text: '❌ ОТМЕНЁН', color: '#FF3B30' }
+            };
+
+            const status = statusMap[order.status || 'pending'];
+
+            // Формируем список позиций
+            const itemsList = order.itemsDetails ? order.itemsDetails.map(i =>
+                `<div style="display:flex; justify-content:space-between; font-size:12px; margin:4px 0;">
+                    <span style="opacity:0.8;">${i.name}</span>
+                    <span style="font-weight:600;">${i.price} ₽</span>
+                </div>`
+            ).join('') : '<div style="font-size:12px; opacity:0.6;">Детали не сохранены</div>';
+
+            const deliveryFee = order.delivery_price > 0 ?
+                `<div style="display:flex; justify-content:space-between; font-size:12px; margin:4px 0; opacity:0.7;">
+                    <span>Доставка</span>
+                    <span>${order.delivery_price} ₽</span>
+                </div>` : '';
+
             item.innerHTML = `
-                <div style="display:flex; justify-content:space-between; margin-bottom: 5px;">
-                    <b>Заказ ${order.id}</b>
-                    <span style="font-size:12px; opacity:0.6;">${order.date}</span>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
+                    <div>
+                        <div style="font-weight:800; font-size:15px;">Заказ ${order.id}</div>
+                        <div style="font-size:11px; opacity:0.5; margin-top:2px;">${order.date}</div>
+                    </div>
+                    <div style="font-size:18px; font-weight:800;">${order.totalSum} ₽</div>
                 </div>
-                <div style="font-size:13px; opacity:0.8;">Тип: ${order.mode === 'delivery' ? '🚚 Доставка' : '🏃 Самовывоз'}</div>
-                <div style="font-size:13px; opacity:0.8; margin-bottom: 5px;">${order.address}</div>
-                <div style="border-top:1px solid rgba(255,255,255,0.1); padding-top:5px; font-weight:700;">Статус: ПРИНЯТ ✅</div>
+                
+                <div style="background: var(--surface-color); padding: 12px; border-radius: 12px; margin: 10px 0; border: 1px solid var(--border-color);">
+                    <div style="font-size:11px; opacity:0.6; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">Состав заказа:</div>
+                    ${itemsList}
+                    ${deliveryFee}
+                </div>
+                
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
+                    <div style="font-size:11px; opacity:0.7;">
+                        ${order.mode === 'delivery' ? '🚚 Доставка' : '🏃 Самовывоз'}
+                    </div>
+                    <div style="font-size:11px; font-weight:800; color:${status.color}; background:${status.color}20; padding:6px 12px; border-radius:8px;">
+                        ${status.text}
+                    </div>
+                </div>
+                
+                <button class="reorder-btn" onclick="reorderFromHistory(${index})" style="
+                    width:100%; 
+                    margin-top:12px; 
+                    padding:12px; 
+                    background:var(--accent-color); 
+                    color:var(--bg-color); 
+                    border:none; 
+                    border-radius:12px; 
+                    font-weight:800; 
+                    font-size:12px;
+                    cursor:pointer;
+                    text-transform:uppercase;
+                    letter-spacing:0.5px;
+                ">
+                    🔄 ПОВТОРИТЬ ЗАКАЗ
+                </button>
             `;
             list.appendChild(item);
         });
     }
 
     historyView.classList.add('active');
+}
+
+function reorderFromHistory(index) {
+    hapticImpact('medium');
+    const history = JSON.parse(localStorage.getItem('order_history') || '[]');
+    const order = history[index];
+
+    if (!order || !order.items) {
+        tg.showAlert('Не удалось загрузить заказ');
+        return;
+    }
+
+    // Очищаем корзину и добавляем все позиции из заказа
+    cart = {};
+    order.items.forEach(itemKey => {
+        cart[itemKey] = (cart[itemKey] || 0) + 1;
+    });
+
+    // Закрываем историю и обновляем UI
+    hideHistoryView();
+    renderMenu();
+    updateCartUI();
+
+    tg.showAlert('✅ Заказ добавлен в корзину!');
 }
 
 function hideHistoryView() { document.getElementById('history-view').classList.remove('active'); }

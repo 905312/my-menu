@@ -86,6 +86,11 @@
             border: 1px solid var(--border-color);
         }
 
+        .reorder-btn:active {
+            transform: scale(0.97);
+            opacity: 0.9;
+        }
+
         header h1 {
             font-size: 18px;
             font-weight: 800;
@@ -293,6 +298,41 @@
         .step-btn:active {
             transform: scale(0.9);
             opacity: 0.8;
+        }
+
+        /* UNAVAILABLE ITEMS */
+        .card.unavailable {
+            opacity: 0.6;
+        }
+
+        .card.unavailable .card-img {
+            position: relative;
+        }
+
+        .unavailable-badge {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 59, 48, 0.95);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            backdrop-filter: blur(10px);
+        }
+
+        .unavailable-btn {
+            background: var(--surface-accent) !important;
+            color: var(--secondary-text) !important;
+            cursor: not-allowed !important;
+            opacity: 0.7;
+        }
+
+        .unavailable-btn:active {
+            transform: none !important;
         }
 
         /* VIEWS */
@@ -572,7 +612,7 @@
 <body class="dark-theme">
     <div id="main-view">
         <header>
-            <h1>RESTO PREMIUM 🍔</h1>
+            <h1>RESTO PREMIUM v2.12 🍔</h1>
             <div class="header-actions">
                 <div class="profile-btn" onclick="showHistoryView()">👤</div>
                 <div class="theme-toggle" onclick="toggleTheme()">🌙</div>
