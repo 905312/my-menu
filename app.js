@@ -15,25 +15,27 @@ let searchTerm = "";
 let stopList = [];
 
 // Считываем стоп-лист и ОБЛАЧНУЮ историю из параметров URL
-function checkStopList() {
+function checkParams() {
     const urlParams = new URLSearchParams(window.location.search);
+
+    // 1. Стоп-лист
     const stop = urlParams.get('stop');
     if (stop) {
-        stopList = stop.split(',');
-        console.log("📍 Загружен стоп-лист:", stopList);
+        stopList = stop.split(',').filter(x => x);
+        console.log("📍 Стоп-лист загружен:", stopList);
     }
 
-    // ЛОГИКА ОБЛАЧНОЙ ИСТОРИИ (Синхронизация между устройствами)
+    // 2. Облачная история
     const cloudHistoryRaw = urlParams.get('h');
     if (cloudHistoryRaw) {
         try {
             const cloudHistory = JSON.parse(decodeURIComponent(cloudHistoryRaw));
             if (Array.isArray(cloudHistory)) {
-                console.log("☁️ Получена история из облака:", cloudHistory);
+                console.log("☁️ Облако получено:", cloudHistory);
                 mergeHistory(cloudHistory);
             }
         } catch (e) {
-            console.error("❌ Ошибка парсинга облачной истории:", e);
+            console.error("❌ Ошибка облака:", e);
         }
     }
 }
@@ -118,24 +120,20 @@ const FOOD_DATA = {
 
 const ALL_ITEMS = Object.entries(FOOD_DATA).flatMap(([cat, items]) => items);
 
-const themeToggleBtn = document.querySelector('.theme-toggle');
-
 function initTheme() {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme) {
-        setTheme(savedTheme);
-    } else {
-        setTheme(tg.colorScheme === 'light' ? 'light' : 'dark');
-    }
+    const saved = localStorage.getItem('theme');
+    if (saved) setTheme(saved);
+    else setTheme(tg.colorScheme === 'light' ? 'light' : 'dark');
 }
 
 function setTheme(theme) {
+    const btn = document.querySelector('.theme-toggle');
     if (theme === 'light') {
         document.body.classList.add('light-theme');
-        themeToggleBtn.innerHTML = '☀️';
+        if (btn) btn.innerHTML = '☀️';
     } else {
         document.body.classList.remove('light-theme');
-        themeToggleBtn.innerHTML = '🌙';
+        if (btn) btn.innerHTML = '🌙';
     }
     localStorage.setItem('theme', theme);
     if (tg.setHeaderColor) tg.setHeaderColor(theme === 'light' ? '#ffffff' : '#000000');
@@ -146,31 +144,23 @@ function toggleTheme() {
     setTheme(document.body.classList.contains('light-theme') ? 'dark' : 'light');
 }
 
-function init() {
-    initTheme();
-    checkStopList();
-    fetchStopListFromGitHub();
-    renderCategories();
-    renderMenu();
-}
-
-async function fetchStopListFromGitHub() {
+async function fetchStopList() {
     try {
-        const timestamp = new Date().getTime();
-        const response = await fetch(`stoplist.json?v=${timestamp}`);
-        if (response.ok) {
-            const githubStopList = await response.json();
-            if (Array.isArray(githubStopList)) {
-                stopList = githubStopList;
+        const r = await fetch(`stoplist.json?v=${Date.now()}`);
+        if (r.ok) {
+            const list = await r.json();
+            if (Array.isArray(list)) {
+                stopList = list;
+                console.log("✅ Стоп-лист синхронизирован");
                 renderMenu();
             }
         }
-    } catch (e) { console.log("Stoplist fetch failed", e); }
+    } catch (e) { console.log("Stop fetch error", e); }
 }
 
-function hapticImpact(style = 'light') { if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred(style); }
+function hapticImpact(s = 'light') { if (tg.HapticFeedback) tg.HapticFeedback.impactOccurred(s); }
 function hapticSelection() { if (tg.HapticFeedback) tg.HapticFeedback.selectionChanged(); }
-function hapticNotification(type = 'success') { if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred(type); }
+function hapticNotification(t = 'success') { if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred(t); }
 
 function renderCategories() {
     categoriesContainer.innerHTML = '';
@@ -199,95 +189,66 @@ function renderMenu() {
         const isUnavailable = stopList.includes(item.id);
         card.className = isUnavailable ? 'card unavailable' : 'card';
 
-        let sizePickerHTML = '';
-        let currentPrice = item.price;
-        let cartKey = item.id;
+        let sizeHTML = '';
+        let price = item.price;
+        let key = item.id;
 
         if (item.variants) {
-            const currentSizeIndex = selectedSizes[item.id] !== undefined ? selectedSizes[item.id] : 1;
-            const variant = item.variants[currentSizeIndex];
-            currentPrice = variant.p;
-            cartKey = `${item.id}_${variant.s}`;
-
-            sizePickerHTML = `<div class="size-picker">` +
-                item.variants.map((v, idx) => `
-                    <div class="size-btn ${idx === currentSizeIndex ? 'active' : ''}" 
-                         onclick="${isUnavailable ? '' : `changeSize('${item.id}', ${idx})`}">${v.s}см</div>
-                `).join('') + `</div>`;
+            const sIdx = selectedSizes[item.id] !== undefined ? selectedSizes[item.id] : 1;
+            const v = item.variants[sIdx];
+            price = v.p;
+            key = `${item.id}_${v.s}`;
+            sizeHTML = `<div class="size-picker">` +
+                item.variants.map((v, i) => `<div class="size-btn ${i === sIdx ? 'active' : ''}" onclick="${isUnavailable ? '' : `changeSize('${item.id}', ${i})`}">${v.s}см</div>`).join('') + `</div>`;
         }
 
-        const unavailableBadge = isUnavailable ? '<div class="unavailable-badge">🚫 НЕТ В НАЛИЧИИ</div>' : '';
-
-        card.innerHTML = `
-            <div class="card-img" style="background-image: url('img/${encodeURIComponent(item.name)}.jpg')">
-                ${unavailableBadge}
-            </div>
-            <h3>${item.name}</h3><p>${item.desc}</p>
-            ${sizePickerHTML}
-            <div class="card-footer" id="footer-${cartKey}">${getFooterHTML(item, cartKey, currentPrice, isUnavailable)}</div>
-        `;
+        const badge = isUnavailable ? '<div class="unavailable-badge">🚫 НЕТ</div>' : '';
+        card.innerHTML = `<div class="card-img" style="background-image:url('img/${encodeURIComponent(item.name)}.jpg')">${badge}</div>
+            <h3>${item.name}</h3><p>${item.desc}</p>${sizeHTML}
+            <div class="card-footer">${getFooterHTML(item, key, price, isUnavailable)}</div>`;
         menuContainer.appendChild(card);
     });
 }
 
-function changeSize(id, idx) {
-    hapticImpact('light');
-    selectedSizes[id] = idx;
-    renderMenu();
+function changeSize(id, i) { hapticImpact('light'); selectedSizes[id] = i; renderMenu(); }
+
+function getFooterHTML(item, key, p, un) {
+    if (un) return `<div class="price" style="opacity:0.5">${p} ₽</div><div class="qty-btn unavailable-btn">НЕТ</div>`;
+    const q = cart[key] || 0;
+    return `<div class="price">${p} ₽</div>` + (q === 0
+        ? `<div class="qty-btn" onclick="addToCart('${key}')">В КОРЗИНУ</div>`
+        : `<div class="stepper"><div class="step-btn" onclick="updateQty('${key}', -1)">−</div><div style="font-weight:700; width:25px; text-align:center;">${q}</div><div class="step-btn" onclick="updateQty('${key}', 1)">+</div></div>`);
 }
 
-function getFooterHTML(item, cartKey, price, isUnavailable = false) {
-    if (isUnavailable) return `<div class="price" style="opacity: 0.5;">${price} ₽</div><div class="qty-btn unavailable-btn">НЕТ В НАЛИЧИИ</div>`;
-    const qty = cart[cartKey] || 0;
-    return `
-        <div class="price">${price} ₽</div>
-        ${qty === 0
-            ? `<div class="qty-btn" onclick="addToCart('${cartKey}')">В КОРЗИНУ</div>`
-            : `<div class="stepper">
-                <div class="step-btn" onclick="updateQty('${cartKey}', -1)">−</div>
-                <div style="font-weight:700; min-width: 20px; text-align: center;">${qty}</div>
-                <div class="step-btn" onclick="updateQty('${cartKey}', 1)">+</div>
-               </div>`
-        }`;
-}
-
-function addToCart(key) { hapticImpact('medium'); updateQty(key, 1); }
-
-function updateQty(key, delta) {
-    const newQty = Math.max(0, (cart[key] || 0) + delta);
-    if (newQty === 0) delete cart[key]; else cart[key] = newQty;
+function addToCart(k) { hapticImpact('medium'); updateQty(k, 1); }
+function updateQty(k, d) {
+    const n = Math.max(0, (cart[k] || 0) + d);
+    if (n === 0) delete cart[k]; else cart[k] = n;
     renderMenu();
-    if (document.getElementById('cart-view').classList.contains('active')) renderCart();
     updateCartUI();
+    if (document.getElementById('cart-view').classList.contains('active')) renderCart();
 }
 
 function updateCartUI() {
     let q = 0, s = 0;
-    for (let key in cart) {
-        const [id, size] = key.split('_');
+    for (let k in cart) {
+        const [id, size] = k.split('_');
         const item = ALL_ITEMS.find(x => x.id === id);
-        const price = size ? item.variants.find(v => v.s == size).p : item.price;
-        q += cart[key]; s += price * cart[key];
+        const p = size ? item.variants.find(v => v.s == size).p : item.price;
+        q += cart[k]; s += p * cart[k];
     }
     cartQty.innerText = q; cartSum.innerText = s + ' ₽';
-
-    const progressBar = document.getElementById('cart-progress');
-    const statusLabel = document.getElementById('delivery-status-label');
-
+    const bar = document.getElementById('cart-progress');
+    const label = document.getElementById('delivery-status-label');
     if (q > 0) {
         cartFloat.classList.add('active');
-        let percent = Math.min(100, (s / FREE_DELIVERY_THRESHOLD) * 100);
-        progressBar.style.width = percent + '%';
-        if (s >= FREE_DELIVERY_THRESHOLD) {
-            statusLabel.innerHTML = "🎉 Бесплатная доставка!";
-            statusLabel.style.color = "#4cd964";
-        } else {
-            statusLabel.innerHTML = `Доставка 99 ₽ (еще ${FREE_DELIVERY_THRESHOLD - s} ₽ до бесплатной)`;
-            statusLabel.style.color = "inherit";
+        let per = Math.min(100, (s / FREE_DELIVERY_THRESHOLD) * 100);
+        if (bar) bar.style.width = per + '%';
+        if (label) {
+            if (s >= FREE_DELIVERY_THRESHOLD) { label.innerHTML = "🎉 Бесплатная доставка!"; label.style.color = "#4cd964"; }
+            else { label.innerHTML = `Доставка 99 ₽ (еще ${FREE_DELIVERY_THRESHOLD - s} ₽ до 0₽)`; label.style.color = "inherit"; }
         }
-    } else {
-        cartFloat.classList.remove('active');
-    }
+    } else { cartFloat.classList.remove('active'); }
 }
 
 function showCartView() { hapticImpact('medium'); document.getElementById('cart-view').classList.add('active'); renderCart(); }
@@ -295,150 +256,134 @@ function hideCartView() { document.getElementById('cart-view').classList.remove(
 
 function renderCart() {
     const list = document.getElementById('cart-items-list');
-    list.innerHTML = '';
-    let totalS = 0;
-    for (let key in cart) {
-        const [id, size] = key.split('_');
+    list.innerHTML = ''; let sum = 0;
+    for (let k in cart) {
+        const [id, size] = k.split('_');
         const item = ALL_ITEMS.find(x => x.id === id);
         if (!item) continue;
-        const price = size ? item.variants.find(v => v.s == size).p : item.price;
-        totalS += price * cart[key];
+        const p = size ? item.variants.find(v => v.s == size).p : item.price;
+        sum += p * cart[k];
         const row = document.createElement('div');
         row.className = 'cart-item-row';
-        row.innerHTML = `
-            <div class="cart-item-img" style="background-image: url('img/${encodeURIComponent(item.name)}.jpg')"></div>
-            <div class="cart-item-info"><h4>${item.name}${size ? ' (' + size + 'см)' : ''}</h4><p>${price} ₽</p></div>
-            <div class="stepper">
-                <div class="step-btn" onclick="updateQty('${key}', -1)">−</div>
-                <div style="font-weight:700; min-width: 20px; text-align: center;">${cart[key]}</div>
-                <div class="step-btn" onclick="updateQty('${key}', 1)">+</div>
-            </div>`;
+        row.innerHTML = `<div class="cart-item-img" style="background-image:url('img/${encodeURIComponent(item.name)}.jpg')"></div>
+            <div class="cart-item-info"><h4>${item.name}${size ? ' (' + size + 'см)' : ''}</h4><p>${p} ₽</p></div>
+            <div class="stepper"><div class="step-btn" onclick="updateQty('${k}', -1)">−</div><div style="font-weight:700; width:25px; text-align:center;">${cart[k]}</div><div class="step-btn" onclick="updateQty('${k}', 1)">+</div></div>`;
         list.appendChild(row);
     }
-    document.getElementById('cart-total-final').innerText = totalS + ' ₽';
+    document.getElementById('cart-total-final').innerText = sum + ' ₽';
 }
 
-function setMode(mode) {
-    hapticImpact('medium');
-    deliveryMode = mode;
-    document.getElementById('btn-delivery').classList.toggle('active', mode === 'delivery');
-    document.getElementById('btn-pickup').classList.toggle('active', mode === 'pickup');
-    document.getElementById('delivery-fields').style.display = (mode === 'delivery') ? 'block' : 'none';
-    document.getElementById('pickup-info').style.display = (mode === 'pickup') ? 'block' : 'none';
-    updateFinalButton();
+function setMode(m) {
+    hapticImpact('medium'); deliveryMode = m;
+    document.getElementById('btn-delivery').classList.toggle('active', m === 'delivery');
+    document.getElementById('btn-pickup').classList.toggle('active', m === 'pickup');
+    document.getElementById('delivery-fields').style.display = (m === 'delivery' ? 'block' : 'none');
+    document.getElementById('pickup-info').style.display = (m === 'pickup' ? 'block' : 'none');
+    updateFinalBtn();
 }
 
-function updateFinalButton() {
-    let foodSum = 0;
-    for (let key in cart) {
-        const [id, size] = key.split('_');
+function updateFinalBtn() {
+    let s = 0;
+    for (let k in cart) {
+        const [id, size] = k.split('_');
         const item = ALL_ITEMS.find(x => x.id === id);
-        const price = size ? item.variants.find(v => v.s == size).p : item.price;
-        foodSum += price * cart[key];
+        s += (size ? item.variants.find(v => v.s == size).p : item.price) * cart[k];
     }
     const warn = document.getElementById('min-order-warn');
     const fb = document.getElementById('final-btn');
-    const isMinOk = foodSum >= MIN_ORDER_SUM;
-    warn.style.display = isMinOk ? 'none' : 'block';
-    if (!isMinOk) document.getElementById('min-sum-diff').innerText = MIN_ORDER_SUM - foodSum;
-    fb.style.opacity = isMinOk ? '1' : '0.5';
-    fb.style.pointerEvents = isMinOk ? 'auto' : 'none';
-
-    currentDeliveryFee = (deliveryMode === 'delivery' && foodSum < FREE_DELIVERY_THRESHOLD) ? FIXED_DELIVERY_FEE : 0;
-    const total = foodSum + currentDeliveryFee;
-    fb.innerHTML = `ЗАКАЗАТЬ: ${total} ₽`;
+    const ok = s >= MIN_ORDER_SUM;
+    if (warn) { warn.style.display = ok ? 'none' : 'block'; if (!ok) document.getElementById('min-sum-diff').innerText = MIN_ORDER_SUM - s; }
+    if (fb) { fb.style.opacity = ok ? '1' : '0.5'; fb.style.pointerEvents = ok ? 'auto' : 'none'; }
+    const fee = (deliveryMode === 'delivery' && s < FREE_DELIVERY_THRESHOLD) ? FIXED_DELIVERY_FEE : 0;
+    if (fb) fb.innerHTML = `ЗАКАЗАТЬ: ${s + fee} ₽`;
 }
 
-function showAddressView() { hapticImpact('heavy'); document.getElementById('address-view').classList.add('active'); updateFinalButton(); }
+function showAddressView() { hapticImpact('heavy'); document.getElementById('address-view').classList.add('active'); updateFinalBtn(); }
 function hideAddressView() { document.getElementById('address-view').classList.remove('active'); }
 
 function formatPhone(input) {
-    let matrix = "+7 (___) ___-__-__", i = 0, val = input.value.replace(/\D/g, "");
-    input.value = matrix.replace(/./g, a => /[_\d]/.test(a) && i < val.length ? val.charAt(i++) : i >= val.length ? "" : a);
+    let m = "+7 (___) ___-__-__", i = 0, v = input.value.replace(/\D/g, "");
+    input.value = m.replace(/./g, a => /[_\d]/.test(a) && i < v.length ? v.charAt(i++) : i >= v.length ? "" : a);
 }
 
 function finalizeOrder() {
-    const phone = document.getElementById('f-phone').value.trim();
-    if (phone.replace(/\D/g, "").length < 11) { tg.showAlert("Введите номер!"); return; }
-    let finalData = { items: [], comment: document.getElementById('f-comment').value.trim(), phone: phone, mode: deliveryMode };
-    for (let key in cart) { for (let i = 0; i < cart[key]; i++) finalData.items.push(key); }
-
+    const ph = document.getElementById('f-phone').value.trim();
+    if (ph.replace(/\D/g, "").length < 11) { tg.showAlert("Введите номер!"); return; }
+    let res = { items: [], comment: document.getElementById('f-comment').value.trim(), phone: ph, mode: deliveryMode };
+    for (let k in cart) for (let i = 0; i < cart[k]; i++) res.items.push(k);
     if (deliveryMode === 'delivery') {
-        const city = document.getElementById('f-city').value.trim();
-        const street = document.getElementById('f-street').value.trim();
-        const house = document.getElementById('f-house').value.trim();
-        const apt = document.getElementById('f-apt').value.trim();
-        if (!city || !street || !house || !apt) { tg.showAlert("Заполните адрес!"); return; }
-        finalData.address = `${city}, ул. ${street}, д. ${house}, кв. ${apt}`;
-        finalData.delivery_price = currentDeliveryFee;
-    } else {
-        finalData.address = "САМОВЫВОЗ: Невский пр. 28";
-        finalData.delivery_price = 0;
-    }
+        const c = document.getElementById('f-city').value.trim(), st = document.getElementById('f-street').value.trim(), h = document.getElementById('f-house').value.trim(), a = document.getElementById('f-apt').value.trim();
+        if (!c || !st || !h || !a) { tg.showAlert("Заполните адрес!"); return; }
+        res.address = `${c}, ул. ${st}, д. ${h}, кв. ${a}`;
+        res.delivery_price = (cartSum.innerText.replace(/\D/g, '') < FREE_DELIVERY_THRESHOLD ? FIXED_DELIVERY_FEE : 0);
+    } else { res.address = "САМОВЫВОЗ: Невский пр. 28"; res.delivery_price = 0; }
 
-    saveOrderToLocalHistory(finalData);
-    tg.sendData(JSON.stringify(finalData));
+    saveToHistory(res);
+    tg.sendData(JSON.stringify(res));
 }
 
-function saveOrderToLocalHistory(order) {
-    let history = JSON.parse(localStorage.getItem('order_history') || '[]');
+function saveToHistory(order) {
+    let h = JSON.parse(localStorage.getItem('order_history') || '[]');
     order.id = 'RP-' + Math.floor(1000 + Math.random() * 9000);
     order.date = new Date().toLocaleString('ru-RU');
-    order.timestamp = Date.now();
     order.status = 'pending';
-    let totalSum = 0;
-    order.itemsDetails = [];
-    order.items.forEach(itemKey => {
-        const [id, size] = itemKey.split('_');
-        const item = ALL_ITEMS.find(x => x.id === id);
+    let s = 0; order.itemsDetails = [];
+    order.items.forEach(k => {
+        const [id, size] = k.split('_'), item = ALL_ITEMS.find(x => x.id === id);
         if (item) {
-            const price = size ? item.variants.find(v => v.s == size).p : item.price;
-            order.itemsDetails.push({ name: item.name + (size ? ` ${size}см` : ''), price: price });
-            totalSum += price;
+            const p = size ? item.variants.find(v => v.s == size).p : item.price;
+            order.itemsDetails.push({ name: item.name + (size ? ` ${size}см` : ''), price: p });
+            s += p;
         }
     });
-    order.totalSum = totalSum + (order.delivery_price || 0);
-    history.unshift(order);
-    localStorage.setItem('order_history', JSON.stringify(history.slice(0, 20)));
+    order.totalSum = s + (order.delivery_price || 0);
+    h.unshift(order); localStorage.setItem('order_history', JSON.stringify(h.slice(0, 20)));
 }
 
 function showHistoryView() {
     try {
+        console.log("👤 Открываю профиль...");
         hapticImpact('medium');
         const view = document.getElementById('history-view');
         const list = document.getElementById('history-list');
+        if (!view || !list) return;
         list.innerHTML = '';
         const history = JSON.parse(localStorage.getItem('order_history') || '[]');
-        if (history.length === 0) {
-            list.innerHTML = '<p style="text-align:center; padding:40px; opacity:0.5;">У вас нет заказов</p>';
-        } else {
-            history.forEach((order, index) => {
-                const item = document.createElement('div');
-                item.className = 'history-card-v2';
-                const statusMap = { 'pending': '⏳ ОЖИДАЕТ', 'accepted': '✅ ПРИНЯТ', 'paid': '✅ ОПЛАЧЕН', 'delivered': '🎉 ДОСТАВЛЕНО', 'cancelled': '❌ ОТМЕНЕН' };
-                const itemsStr = order.itemsDetails ? order.itemsDetails.map(i => `<div style="display:flex; justify-content:space-between; font-size:12px;"><span>${i.name}</span><b>${i.price}₽</b></div>`).join('') : 'Детали в чате';
-                item.innerHTML = `
-                    <div style="display:flex; justify-content:space-between; margin-bottom:8px;"><b>Заказ ${order.id}</b><b>${order.totalSum}₽</b></div>
-                    <div style="font-size:10px; opacity:0.5; margin-bottom:10px;">${order.date} | ${statusMap[order.status] || order.status}</div>
-                    <div style="background:rgba(255,255,255,0.03); padding:10px; border-radius:10px;">${itemsStr}</div>
-                    <button class="reorder-btn-v2" onclick="reorderFromHistory(${index})">ПОВТОРИТЬ</button>`;
-                list.appendChild(item);
+        if (history.length === 0) { list.innerHTML = '<p style="text-align:center; padding:40px; opacity:0.5;">У вас нет заказов</p>'; }
+        else {
+            history.forEach((o, i) => {
+                const card = document.createElement('div');
+                card.className = 'history-card-v2';
+                const map = { 'pending': '⏳ ОЖИДАЕТ', 'accepted': '✅ ПРИНЯТ', 'paid': '✅ ОПЛАЧЕН', 'delivered': '🎉 ДОСТАВЛЕНО', 'cancelled': '❌ ОТМЕНЕН' };
+                const det = o.itemsDetails ? o.itemsDetails.map(it => `<div style="display:flex; justify-content:space-between; font-size:12px;"><span>${it.name}</span><b>${it.price}₽</b></div>`).join('') : 'Детали в чате';
+                card.innerHTML = `<div style="display:flex; justify-content:space-between; margin-bottom:8px;"><b>Заказ ${o.id}</b><b>${o.totalSum}₽</b></div>
+                    <div style="font-size:10px; opacity:0.5; margin-bottom:10px;">${o.date} | ${map[o.status] || o.status}</div>
+                    <div style="background:rgba(255,255,255,0.03); padding:10px; border-radius:10px;">${det}</div>
+                    <button class="reorder-btn-v2" onclick="reorder(${i})">ПОВТОРИТЬ</button>`;
+                list.appendChild(card);
             });
         }
         view.classList.add('active');
-    } catch (e) { console.error(e); }
+    } catch (e) { console.error("History error", e); }
 }
 
-function reorderFromHistory(index) {
-    const history = JSON.parse(localStorage.getItem('order_history') || '[]');
-    const order = history[index];
-    if (order && order.items) {
-        cart = {}; order.items.forEach(k => cart[k] = (cart[k] || 0) + 1);
-        hideHistoryView(); renderMenu(); updateCartUI();
-        tg.showAlert('Заказ добавлен в корзину!');
-    }
+function reorder(i) {
+    const h = JSON.parse(localStorage.getItem('order_history') || '[]');
+    const o = h[i];
+    if (o && o.items) { cart = {}; o.items.forEach(k => cart[k] = (cart[k] || 0) + 1); hideHistoryView(); renderMenu(); updateCartUI(); tg.showAlert('Заказ добавлен в корзину!'); }
 }
 
 function hideHistoryView() { document.getElementById('history-view').classList.remove('active'); }
 function filterMenu() { searchTerm = searchInput.value; renderMenu(); }
+
+function init() {
+    console.log("🚀 Init started");
+    initTheme();
+    checkParams();
+    fetchStopList();
+    renderCategories();
+    renderMenu();
+    setInterval(fetchStopList, 5 * 60 * 1000);
+}
+
 init();
