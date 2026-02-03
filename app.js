@@ -131,8 +131,8 @@ function init() {
     renderCategories();
     renderMenu();
 
-    // Проверяем обновления каждые 7 минут
-    setInterval(fetchStopListFromGitHub, 7 * 60 * 1000);
+    // Проверяем обновления каждые 30 секунд для теста
+    setInterval(fetchStopListFromGitHub, 30 * 1000);
 }
 
 // ФУНКЦИЯ ДЛЯ ПОЛУЧЕНИЯ СТОП-ЛИСТА С GITHUB
@@ -570,54 +570,36 @@ function showHistoryView() {
 
             // Определяем статус
             const statusMap = {
-                'pending': { text: '⏳ ОЖИДАЕТ ПОДТВЕРЖДЕНИЯ', color: '#FF9500' },
-                'accepted': { text: '✅ ПРИНЯТ', color: '#34C759' },
-                'delivered': { text: '🎉 ДОСТАВЛЕНО', color: '#007AFF' },
-                'cancelled': { text: '❌ ОТМЕНЁН', color: '#FF3B30' }
+                'pending': { text: '⏳ ОЖИДАЕТ', color: '#FF9500', bg: 'rgba(255, 149, 0, 0.1)' },
+                'accepted': { text: '✅ ПРИНЯТ', color: '#34C759', bg: 'rgba(52, 199, 89, 0.1)' },
+                'delivered': { text: '🎉 ДОСТАВЛЕНО', color: '#007AFF', bg: 'rgba(0, 122, 255, 0.1)' },
+                'cancelled': { text: '❌ ОТМЕНЁН', color: '#FF3B30', bg: 'rgba(255, 59, 48, 0.1)' }
             };
 
             const status = statusMap[order.status || 'pending'];
 
             // Формируем список позиций
             const itemsList = order.itemsDetails ? order.itemsDetails.map(i =>
-                `<div style="display:flex; justify-content:space-between; font-size:12px; margin:4px 0;">
+                `<div style="display:flex; justify-content:space-between; font-size:12px; margin:6px 0; border-bottom:1px dashed var(--border-color); padding-bottom:4px;">
                     <span style="opacity:0.8;">${i.name}</span>
-                    <span style="font-weight:600;">${i.price} ₽</span>
+                    <span style="font-weight:700;">${i.price} ₽</span>
                 </div>`
-            ).join('') : '<div style="font-size:12px; opacity:0.6;">Детали не сохранены</div>';
-
-            const deliveryFee = order.delivery_price > 0 ?
-                `<div style="display:flex; justify-content:space-between; font-size:12px; margin:4px 0; opacity:0.7;">
-                    <span>Доставка</span>
-                    <span>${order.delivery_price} ₽</span>
-                </div>` : '';
+            ).join('') : '<div style="font-size:12px; opacity:0.6; padding:10px 0;">📦 Детали заказа из старой версии</div>';
 
             item.innerHTML = `
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
+                <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom: 12px;">
                     <div>
-                        <div style="font-weight:800; font-size:15px;">Заказ ${order.id}</div>
+                        <div style="font-weight:800; font-size:16px;">Заказ ${order.id}</div>
                         <div style="font-size:11px; opacity:0.5; margin-top:2px;">${order.date}</div>
                     </div>
-                    <div style="font-size:18px; font-weight:800;">${order.totalSum} ₽</div>
+                    <div style="text-align:right;">
+                        <div style="font-size:18px; font-weight:900; color:var(--accent-color);">${order.totalSum} ₽</div>
+                        <div class="status-badge" style="color:${status.color}; background:${status.bg}; display:inline-block; margin-top:5px;">${status.text}</div>
+                    </div>
                 </div>
                 
-                <div style="background: var(--surface-color); padding: 12px; border-radius: 12px; margin: 10px 0; border: 1px solid var(--border-color);">
-                    <div style="font-size:11px; opacity:0.6; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.5px;">Состав заказа:</div>
+                <div style="background: rgba(255,255,255,0.03); border-radius:12px; padding:10px; margin: 10px 0;">
                     ${itemsList}
-                    ${deliveryFee}
-                </div>
-                
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px;">
-                    <div style="font-size:11px; opacity:0.7;">
-                        ${order.mode === 'delivery' ? '🚚 Доставка' : '🏃 Самовывоз'}
-                    </div>
-                    <div style="font-size:11px; font-weight:800; color:${status.color}; background:${status.color}20; padding:6px 12px; border-radius:8px;">
-                        ${status.text}
-                    </div>
-                </div>
-                
-                <button class="reorder-btn" onclick="reorderFromHistory(${index})" style="
-                    width:100%; 
                     margin-top:12px; 
                     padding:12px; 
                     background:var(--accent-color); 

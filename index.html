@@ -80,21 +80,36 @@
 
         .history-item {
             background: var(--surface-accent);
-            padding: 15px;
-            border-radius: 16px;
+            border-radius: 18px;
+            padding: 16px;
             margin-bottom: 12px;
             border: 1px solid var(--border-color);
+            transition: 0.3s;
         }
 
-        .reorder-btn:active {
-            transform: scale(0.97);
-            opacity: 0.9;
+        .history-item:active {
+            transform: scale(0.98);
         }
 
-        header h1 {
-            font-size: 18px;
+        .status-badge {
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 10px;
             font-weight: 800;
-            color: var(--accent-color);
+            text-transform: uppercase;
+        }
+
+        .reorder-btn {
+            width: 100%;
+            margin-top: 14px;
+            padding: 12px;
+            background: linear-gradient(135deg, var(--accent-color), #ff9500);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
         }
 
         .theme-toggle {
