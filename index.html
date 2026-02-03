@@ -3,226 +3,357 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>RESTO Delivery</title>
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>RESTO X PREMIUM</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-color: #000;
-            --surface-color: #1c1c1e;
-            --text-color: #fff;
-            --secondary-text: #8e8e93;
-            --accent-color: #fff;
-            --accent-text: #000;
-            --border-color: #38383a;
+            --bg-color: #000000;
+            --surface-color: #0D0D0D;
+            --surface-accent: #1A1A1A;
+            --accent-color: #FFFFFF;
+            --secondary-text: #666666;
+            --border-color: rgba(255, 255, 255, 0.08);
+            --header-bg: rgba(0, 0, 0, 0.8);
         }
 
-        .light-theme {
-            --bg-color: #fff;
-            --surface-color: #f2f2f7;
-            --text-color: #000;
-            --secondary-text: #8e8e93;
-            --accent-color: #000;
-            --accent-text: #fff;
-            --border-color: #d1d1d6;
+        body.light-theme {
+            --bg-color: #F5F5F7;
+            --surface-color: #FFFFFF;
+            --surface-accent: #E5E5EA;
+            --accent-color: #000000;
+            --secondary-text: #86868B;
+            --border-color: rgba(0, 0, 0, 0.05);
+            --header-bg: rgba(255, 255, 255, 0.8);
         }
 
         * {
-            margin: 0;
-            padding: 0;
             box-sizing: border-box;
             -webkit-tap-highlight-color: transparent;
-            font-family: -apple-system, system-ui, sans-serif;
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
             user-select: none;
             -webkit-user-select: none;
-            cursor: default;
-        }
-
-        input,
-        textarea {
-            user-select: text;
-            -webkit-user-select: text;
-            cursor: text;
-        }
-
-        .qty-btn,
-        .step-btn,
-        .confirm-btn,
-        .back-btn,
-        .cat-item,
-        .mode-btn,
-        .theme-toggle {
-            cursor: pointer;
         }
 
         body {
-            background: var(--bg-color);
-            color: var(--text-color);
+            background-color: var(--bg-color);
+            color: var(--accent-color);
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            transition: background 0.3s, color 0.3s;
         }
 
         header {
-            padding: 15px 20px;
+            padding: 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            position: sticky;
+            top: 0;
+            background: var(--header-bg);
+            backdrop-filter: blur(20px);
+            z-index: 100;
+            border-bottom: 1px solid var(--border-color);
         }
 
-        .logo {
-            font-weight: 800;
-            font-size: 20px;
-        }
-
-        #categories-container {
+        .header-actions {
             display: flex;
+            gap: 8px;
+        }
+
+        .profile-btn {
+            width: 40px;
+            height: 40px;
+            background: var(--surface-accent);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: 1px solid var(--border-color);
+        }
+
+        /* НОВЫЙ ДИЗАЙН КАБИНЕТА V2 */
+        .history-card-v2 {
+            background: var(--surface-accent);
+            border-radius: 18px;
+            padding: 16px;
+            margin-bottom: 15px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            transition: 0.3s;
+        }
+
+        .history-card-v2:active {
+            transform: scale(0.98);
+        }
+
+        .status-badge-v2 {
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .reorder-btn-v2 {
+            width: 100%;
+            margin-top: 14px;
+            padding: 12px;
+            background: var(--accent-color);
+            color: var(--bg-color);
+            /* Теперь текст будет контрастным! */
+            border: none;
+            border-radius: 12px;
+            font-weight: 800;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        .theme-toggle {
+            width: 40px;
+            height: 40px;
+            background: var(--surface-accent);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+        }
+
+        .search-container {
+            padding: 16px 20px 8px;
+            position: sticky;
+            top: 80px;
+            z-index: 99;
+            background: var(--bg-color);
+        }
+
+        .search-inner {
+            background: var(--surface-accent);
+            border-radius: 14px;
+            padding: 12px;
+            display: flex;
+            align-items: center;
             gap: 10px;
-            padding: 10px 20px;
+            border: 1px solid var(--border-color);
+        }
+
+        .search-inner input {
+            background: transparent;
+            border: none;
+            color: var(--accent-color);
+            font-size: 14px;
+            width: 100%;
+            outline: none;
+        }
+
+        .categories {
+            display: flex;
             overflow-x: auto;
+            padding: 10px 20px;
+            gap: 10px;
             scrollbar-width: none;
         }
 
-        #categories-container::-webkit-scrollbar {
+        .categories::-webkit-scrollbar {
             display: none;
         }
 
         .cat-item {
-            padding: 8px 16px;
-            background: var(--surface-color);
-            border-radius: 10px;
+            padding: 10px 18px;
+            background: var(--surface-accent);
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 700;
             white-space: nowrap;
-            font-weight: 600;
-            font-size: 14px;
-            color: var(--secondary-text);
+            cursor: pointer;
+            transition: 0.3s;
+            border: 1px solid var(--border-color);
         }
 
         .cat-item.active {
             background: var(--accent-color);
-            color: var(--accent-text);
+            color: var(--bg-color);
         }
 
-        #menu-container {
+        .menu-grid {
             padding: 10px 20px 100px;
-            display: flex;
-            flex-direction: column;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
             gap: 15px;
         }
 
         .card {
             background: var(--surface-color);
-            border-radius: 15px;
-            overflow: hidden;
+            border-radius: 24px;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .cart-item-row {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px 0;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .cart-item-img {
+            width: 70px;
+            height: 70px;
+            border-radius: 16px;
+            background-size: cover;
+            background-position: center;
+            flex-shrink: 0;
+            background-color: var(--surface-accent);
+        }
+
+        .cart-item-info {
+            flex-grow: 1;
+        }
+
+        .cart-item-info h4 {
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .cart-item-info p {
+            font-size: 13px;
+            color: var(--secondary-text);
+            font-weight: 600;
         }
 
         .card-img {
             width: 100%;
-            height: 150px;
+            aspect-ratio: 1;
+            border-radius: 18px;
             background-size: cover;
             background-position: center;
-            position: relative;
-        }
-
-        .unavailable {
-            opacity: 0.5;
-            filter: grayscale(1);
+            margin-bottom: 12px;
         }
 
         .card h3 {
-            padding: 12px 15px 4px;
-            font-size: 17px;
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 4px;
         }
 
         .card p {
-            padding: 0 15px 12px;
-            font-size: 13px;
-            color: var(--secondary-text);
-        }
-
-        .size-picker {
-            display: flex;
-            gap: 5px;
-            padding: 0 15px 12px;
-        }
-
-        .size-btn {
-            padding: 4px 10px;
-            border-radius: 6px;
-            background: #2c2c2e;
             font-size: 11px;
-            font-weight: 600;
-        }
-
-        .size-btn.active {
-            background: var(--accent-color);
-            color: var(--accent-text);
+            color: var(--secondary-text);
+            margin-bottom: 12px;
+            line-height: 1.3;
+            flex-grow: 1;
         }
 
         .card-footer {
-            padding: 12px 15px;
-            border-top: 1px solid var(--border-color);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            margin-top: auto;
+            gap: 12px;
+            padding-top: 8px;
         }
 
         .price {
-            font-size: 17px;
             font-weight: 800;
+            font-size: 16px;
+            white-space: nowrap;
         }
 
         .qty-btn {
             background: var(--accent-color);
-            color: var(--accent-text);
-            padding: 7px 16px;
-            border-radius: 8px;
+            color: var(--bg-color);
             font-weight: 800;
             font-size: 12px;
+            padding: 10px 16px;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .qty-btn:active {
+            transform: scale(0.96);
         }
 
         .stepper {
             display: flex;
             align-items: center;
-            gap: 12px;
+            gap: 8px;
+            background: var(--surface-accent);
+            padding: 4px;
+            border-radius: 14px;
+            border: 1px solid var(--border-color);
         }
 
         .step-btn {
-            width: 28px;
-            height: 28px;
-            background: var(--accent-color);
-            color: var(--accent-text);
-            border-radius: 6px;
+            width: 32px;
+            height: 32px;
             display: flex;
             align-items: center;
             justify-content: center;
+            background: var(--accent-color);
+            color: var(--bg-color);
+            border: none;
+            border-radius: 10px;
             font-weight: 800;
+            cursor: pointer;
+            font-size: 18px;
+            transition: 0.2s;
         }
 
-        #cart-float {
-            position: fixed;
-            bottom: 20px;
-            left: 20px;
-            right: 20px;
-            background: #fff;
-            color: #000;
-            padding: 15px 20px;
-            border-radius: 12px;
-            display: none;
-            justify-content: space-between;
-            align-items: center;
-            z-index: 100;
-            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        .step-btn:active {
+            transform: scale(0.9);
+            opacity: 0.8;
         }
 
-        #cart-float.active {
-            display: flex;
+        /* UNAVAILABLE ITEMS */
+        .card.unavailable {
+            opacity: 0.6;
         }
 
-        #cart-progress {
+        .card.unavailable .card-img {
+            position: relative;
+        }
+
+        .unavailable-badge {
             position: absolute;
-            top: 0;
-            left: 0;
-            height: 3px;
-            background: #4cd964;
+            top: 10px;
+            right: 10px;
+            background: rgba(255, 59, 48, 0.95);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            backdrop-filter: blur(10px);
         }
 
+        .unavailable-btn {
+            background: var(--surface-accent) !important;
+            color: var(--secondary-text) !important;
+            cursor: not-allowed !important;
+            opacity: 0.7;
+        }
+
+        .unavailable-btn:active {
+            transform: none !important;
+        }
+
+        /* VIEWS */
         .view {
             position: fixed;
             top: 0;
@@ -230,7 +361,7 @@
             width: 100%;
             height: 100%;
             background: var(--bg-color);
-            z-index: 1000;
+            z-index: 2000;
             display: none;
             flex-direction: column;
         }
@@ -240,177 +371,399 @@
         }
 
         .view-header {
-            padding: 15px 20px;
-            border-bottom: 1px solid var(--border-color);
+            padding: 20px;
             display: flex;
             align-items: center;
             gap: 15px;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--surface-color);
+            position: sticky;
+            top: 0;
+            z-index: 10;
         }
 
         .view-content {
             padding: 20px;
+            flex-grow: 1;
             overflow-y: auto;
-            flex: 1;
+            padding-bottom: 100px;
         }
 
-        .input-main {
+        .view-header {
+            position: relative;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0 20px;
+            margin-bottom: 5px;
             width: 100%;
-            padding: 12px;
-            background: var(--surface-color);
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            color: var(--text-color);
-            margin-bottom: 10px;
-            outline: none;
         }
 
-        .confirm-btn {
-            width: 100%;
-            padding: 16px;
-            background: #fff;
-            color: #000;
-            border-radius: 12px;
+        .view-header h2 {
+            margin: 0;
+            font-size: 21px;
             font-weight: 800;
+            text-align: center;
+            width: 100%;
+            display: block;
+        }
+
+        .back-btn {
+            position: absolute;
+            left: 20px;
+            z-index: 10;
+            font-size: 26px;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* CART FLOAT */
+        .cart-float {
+            position: fixed;
+            bottom: max(20px, env(safe-area-inset-bottom));
+            left: 20px;
+            right: 20px;
+            background: var(--accent-color);
+            color: var(--bg-color);
+            height: 74px;
+            border-radius: 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            padding: 0 24px;
+            font-weight: 800;
+            z-index: 1000;
+            transform: translateY(150px);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            overflow: hidden;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .cart-float.active {
+            transform: translateY(0);
+        }
+
+        .cart-content {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+            z-index: 2;
+        }
+
+        .cart-progress-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 6px;
+            width: 0%;
+            background: linear-gradient(90deg, #ff3b30, #ffcc00, #4cd964);
+            background-size: 200% 100%;
+            transition: width 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+            z-index: 100;
+            box-shadow: 0 0 15px rgba(255, 204, 0, 0.4);
+        }
+
+        .delivery-status-text {
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            margin-bottom: 6px;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            text-shadow: 0.5px 0.5px 0px rgba(0, 0, 0, 0.1);
+            /* Легкая обводка */
+        }
+
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            width: 100%;
+            background: #1A1A1A;
+            border-radius: 14px;
+            border: 2px solid #333;
+            max-height: 280px;
+            overflow-y: auto;
+            display: none;
+            z-index: 99999;
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.8);
+            margin-top: 5px;
+        }
+
+        .res-item {
+            padding: 16px 20px;
+            border-bottom: 1px solid #333;
             font-size: 15px;
-            margin-top: 15px;
-            border: none;
+            cursor: pointer;
+            color: #FFF;
+            display: flex;
+            align-items: center;
+        }
+
+        .res-item:before {
+            content: "📍";
+            margin-right: 12px;
+            font-size: 14px;
+        }
+
+        .res-item:active {
+            background: #333;
         }
 
         .mode-toggle {
             display: flex;
-            background: var(--surface-color);
+            background: var(--surface-accent);
+            border-radius: 16px;
             padding: 4px;
-            border-radius: 10px;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
         }
 
         .mode-btn {
             flex: 1;
-            padding: 10px;
+            padding: 12px;
             text-align: center;
-            border-radius: 7px;
-            font-weight: 600;
-            color: var(--secondary-text);
+            font-size: 13px;
+            font-weight: 700;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: 0.3s;
         }
 
         .mode-btn.active {
-            background: #fff;
-            color: #000;
+            background: var(--accent-color);
+            color: var(--bg-color);
         }
 
-        .history-card-v2 {
-            background: var(--surface-color);
-            border-radius: 12px;
-            padding: 12px;
-            margin-bottom: 15px;
-        }
-
-        .reorder-btn-v2 {
+        .input-main {
             width: 100%;
-            padding: 8px;
-            margin-top: 10px;
-            background: var(--surface-color);
-            border-radius: 6px;
+            padding: 16px;
+            background: var(--surface-accent);
             border: 1px solid var(--border-color);
-            color: #fff;
+            border-radius: 14px;
+            color: var(--accent-color);
+            outline: none;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .input-full {
+            grid-column: span 2;
+            width: 100%;
+            padding: 16px;
+            background: var(--surface-accent);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            color: var(--accent-color);
+            outline: none;
+            resize: none;
+        }
+
+        /* SIZE SELECTOR */
+        .size-picker {
+            display: flex;
+            gap: 8px;
+            margin: 10px 0;
+        }
+
+        .size-btn {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            font-size: 11px;
+            text-align: center;
+            color: var(--secondary-text);
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .size-btn.active {
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        /* MIN ORDER WARNING */
+        #min-order-warn {
+            background: rgba(255, 59, 48, 0.1);
+            color: #ff3b30;
+            padding: 12px;
+            border-radius: 12px;
+            font-size: 13px;
+            text-align: center;
+            margin-bottom: 15px;
+            display: none;
+            font-weight: 600;
+        }
+
+        .confirm-btn {
+            width: 100%;
+            padding: 18px;
+            background: var(--accent-color);
+            color: var(--bg-color);
+            border-radius: 18px;
+            font-weight: 800;
+            border: none;
+            font-size: 15px;
+            margin-top: 20px;
+            cursor: pointer;
         }
     </style>
 </head>
 
-<body>
-    <header>
-        <div class="logo">RESTO PREMIUM</div>
-        <div style="display:flex; gap:10px;">
-            <div onclick="toggleTheme()" style="padding:5px;">🌙</div>
-            <div onclick="showHistoryView()" style="padding:5px;">👤</div>
-        </div>
-    </header>
+<body class="dark-theme">
+    <div id="main-view">
+        <header>
+            <h1 style="font-size: 24px;">RESTO PREMIUM 🍔</h1>
+            <div class="header-actions">
+                <div class="profile-btn" onclick="showHistoryView()">👤</div>
+                <div class="theme-toggle" onclick="toggleTheme()">🌙</div>
+            </div>
+        </header>
 
-    <div style="padding: 0 20px 5px;">
-        <input type="text" id="searchInput"
-            style="width:100%; padding:10px; background:var(--surface-color); border:1px solid var(--border-color); border-radius:8px; color:#fff;"
-            placeholder="Поиск..." oninput="filterMenu()">
+        <div class="search-container">
+            <div class="search-inner">
+                <span>🔍</span>
+                <input type="text" id="searchInput" placeholder="Поиск деликатесов..." oninput="filterMenu()">
+            </div>
+        </div>
+
+        <div class="categories" id="categories-container"></div>
+        <div class="menu-grid" id="menu-container"></div>
+
+        <div class="cart-float" id="cart-float" onclick="showCartView()">
+            <div class="cart-progress-bar" id="cart-progress"></div>
+            <div class="delivery-status-text" id="delivery-status-label">Доставка: 99 ₽</div>
+            <div class="cart-content">
+                <span id="cart-qty">0</span>
+                <span>ПЕРЕЙТИ В КОРЗИНУ</span>
+                <span id="cart-sum">0 ₽</span>
+            </div>
+        </div>
     </div>
 
-    <div id="categories-container"></div>
-    <div id="menu-container"></div>
-
-    <div id="cart-float" onclick="showCartView()">
-        <div id="cart-progress"></div>
-        <div style="display:flex; flex-direction:column;">
-            <span id="cart-qty" style="font-weight:800;">0</span>
-            <span id="delivery-status-label" style="font-size:10px; opacity:0.7;">Доставка 99 ₽</span>
-        </div>
-        <div style="display:flex; align-items:center; gap:5px;">
-            <span id="cart-sum" style="font-weight:800;">0 ₽</span>
-            <span>→</span>
-        </div>
-    </div>
-
+    <!-- VIEW: CART -->
     <div id="cart-view" class="view">
         <div class="view-header">
-            <div onclick="hideCartView()">←</div>
-            <h2>Корзина</h2>
+            <div class="back-btn" onclick="hideCartView()">←</div>
+            <h2>Ваша корзина</h2>
         </div>
-        <div class="view-content">
-            <div id="cart-items-list"></div>
-            <div style="margin-top:20px; text-align:right; font-weight:800; font-size:18px;">Итого: <span
-                    id="cart-total-final">0 ₽</span></div>
-            <button class="confirm-btn" onclick="showAddressView()">Далее</button>
+        <div class="view-content" id="cart-items-list"></div>
+        <div
+            style="padding:20px; border-top:1px solid var(--border-color); background:var(--surface-color); position:sticky; bottom:0;">
+            <div style="display:flex; justify-content:space-between; margin-bottom:15px; font-weight:700;">
+                <span>К оплате:</span>
+                <span id="cart-total-final">0 ₽</span>
+            </div>
+            <button class="confirm-btn" onclick="showAddressView()">ПРОДОЛЖИТЬ</button>
         </div>
     </div>
 
+    <!-- VIEW: ADDRESS / DELIVERY MODE -->
     <div id="address-view" class="view">
         <div class="view-header">
-            <div onclick="hideAddressView()">←</div>
+            <div class="back-btn" onclick="hideAddressView()">←</div>
             <h2>Доставка</h2>
         </div>
         <div class="view-content">
             <div class="mode-toggle">
-                <div class="mode-btn active" id="btn-delivery" onclick="setMode('delivery')">Доставка</div>
-                <div class="mode-btn" id="btn-pickup" onclick="setMode('pickup')">Самовывоз</div>
+                <div class="mode-btn active" id="btn-delivery" onclick="setMode('delivery')">Доставка (99 ₽)</div>
+                <div class="mode-btn" id="btn-pickup" onclick="setMode('pickup')">Самовывоз (0 ₽)</div>
             </div>
 
             <div id="pickup-info"
-                style="display:none; padding:12px; background:var(--surface-color); border-radius:10px; margin-bottom:15px; font-size:13px;">
-                📍 Невский пр. 28. Ждем вас!
+                style="display:none; background:var(--surface-accent); padding:15px; border-radius:15px; margin-bottom:20px; border:1px dashed var(--border-color);">
+                <p style="font-size:12px; color:var(--secondary-text); margin-bottom:5px;">📍 Адрес ресторана:</p>
+                <p style="font-weight:700; font-size:14px;">г. Санкт-Петербург, Невский проспект, д. 28</p>
+                <p style="font-size:11px; color:var(--secondary-text); margin-top:5px;">🏠 ООО "РЕСТОРАН ИКС" - Ждем
+                    вас!</p>
             </div>
 
-            <div id="min-order-warn"
-                style="color:#ff3b30; font-size:12px; text-align:center; padding:10px; display:none;">Минимум 700 ₽
+            <div id="min-order-warn">До минимальной суммы заказа (700 ₽) не хватает <span id="min-sum-diff">0</span>
+                ₽
             </div>
-
             <div id="delivery-fields">
                 <div id="delivery-info-bar"
-                    style="background:#1c1c1e; padding:10px; border-radius:10px; margin-bottom:15px; font-size:11px; text-align:center;">
-                    🚚 Бесплатно от 1500 ₽
+                    style="background:rgba(255,255,255,0.05); padding:10px; border-radius:12px; margin-bottom:15px; font-size:12px; text-align:center;">
+                    🚚 Бесплатная доставка от <b>1500 ₽</b>
                 </div>
-                <input type="text" id="f-city" class="input-main" value="Санкт-Петербург">
-                <input type="text" id="f-street" class="input-main" placeholder="Улица *">
-                <div style="display:flex; gap:10px;">
-                    <input type="text" id="f-house" class="input-main" placeholder="Дом *">
-                    <input type="text" id="f-apt" class="input-main" placeholder="Кв. *">
+                <div style="margin-bottom: 20px;">
+                    <label style="font-size:12px; color:var(--secondary-text); margin-left:5px;">Город *</label>
+                    <input type="text" id="f-city" class="input-main" value="Санкт-Петербург">
+
+                    <label style="font-size:12px; color:var(--secondary-text); margin-left:5px;">Улица *</label>
+                    <input type="text" id="f-street" class="input-main" placeholder="Название улицы">
+
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                        <div>
+                            <label style="font-size:12px; color:var(--secondary-text); margin-left:5px;">Дом
+                                *</label>
+                            <input type="text" id="f-house" class="input-main" placeholder="№ дома">
+                        </div>
+                        <div>
+                            <label style="font-size:12px; color:var(--secondary-text); margin-left:5px;">Квартира
+                                *</label>
+                            <input type="text" id="f-apt" class="input-main" placeholder="№">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-grid">
+                    <input type="text" id="f-ent" class="input-main" placeholder="Подъезд *">
+                    <input type="text" id="f-floor" class="input-main" placeholder="Этаж *">
+                    <input type="text" id="f-code" class="input-main" placeholder="Домофон">
                 </div>
             </div>
 
-            <input type="tel" id="f-phone" class="input-main" placeholder="+7 (___) ___-__-__"
-                oninput="formatPhone(this)">
-            <textarea id="f-comment" class="input-full" placeholder="Комментарий..."></textarea>
-            <button class="confirm-btn" id="final-btn" onclick="finalizeOrder()">Оформить</button>
+            <div style="margin-top: 20px;">
+                <label style="font-size:12px; color:var(--secondary-text); margin-left:5px;">Номер телефона
+                    *</label>
+                <input type="tel" id="f-phone" class="input-main" placeholder="+7 (___) ___-__-__"
+                    oninput="formatPhone(this)">
+            </div>
+
+            <textarea id="f-comment" class="input-full" rows="2"
+                placeholder="Комментарий для курьера/ресторана..."></textarea>
+            <button class="confirm-btn" id="final-btn" onclick="finalizeOrder()">ЗАКАЗАТЬ: 0 ₽</button>
         </div>
     </div>
 
+    <!-- VIEW: SUCCESS -->
+    <div id="success-view" class="view" style="text-align:center; justify-content:center; padding:40px;">
+        <div style="font-size:80px; margin-bottom:20px;">✅</div>
+        <h2>Заказ оформлен!</h2>
+        <div id="success-msg" style="color:var(--secondary-text); margin: 15px 0 30px;">Бот прислал детали в чат.
+        </div>
+        <button class="confirm-btn" onclick="window.Telegram.WebApp.close()">ОТЛИЧНО!</button>
+    </div>
+
+    <!-- VIEW: HISTORY (Личный кабинет) -->
     <div id="history-view" class="view">
         <div class="view-header">
-            <div onclick="hideHistoryView()">←</div>
-            <h2>Заказы</h2>
+            <div class="back-btn" onclick="hideHistoryView()">←</div>
+            <h2>Мои заказы</h2>
         </div>
-        <div class="view-content">
-            <div id="history-list"></div>
+        <div class="view-content" id="history-list">
+            <!-- Сюда JS вставит историю -->
         </div>
     </div>
 
-    <script src="app.js?v=4.2"></script>
+    <script src="app.js?v=25.0"></script>
 </body>
 
 </html>
