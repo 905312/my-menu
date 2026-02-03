@@ -78,32 +78,35 @@
             border: 1px solid var(--border-color);
         }
 
-        .history-item {
+        /* НОВЫЙ ДИЗАЙН КАБИНЕТА V2 */
+        .history-card-v2 {
             background: var(--surface-accent);
             border-radius: 18px;
             padding: 16px;
-            margin-bottom: 12px;
+            margin-bottom: 15px;
             border: 1px solid var(--border-color);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
             transition: 0.3s;
         }
 
-        .history-item:active {
+        .history-card-v2:active {
             transform: scale(0.98);
         }
 
-        .status-badge {
+        .status-badge-v2 {
             padding: 4px 10px;
             border-radius: 8px;
             font-size: 10px;
             font-weight: 800;
             text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
-        .reorder-btn {
+        .reorder-btn-v2 {
             width: 100%;
             margin-top: 14px;
             padding: 12px;
-            background: linear-gradient(135deg, var(--accent-color), #ff9500);
+            background: var(--accent-color);
             color: white;
             border: none;
             border-radius: 12px;
@@ -627,7 +630,7 @@
 <body class="dark-theme">
     <div id="main-view">
         <header>
-            <h1>RESTO PREMIUM v2.12 🍔</h1>
+            <h1 style="font-size: 24px;">RESTO PREMIUM 🍔</h1>
             <div class="header-actions">
                 <div class="profile-btn" onclick="showHistoryView()">👤</div>
                 <div class="theme-toggle" onclick="toggleTheme()">🌙</div>

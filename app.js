@@ -535,6 +535,29 @@ function saveOrderToLocalHistory(order) {
     localStorage.setItem('order_history', JSON.stringify(history));
 }
 
+// Проверяем обновления каждые 10 минут
+setInterval(fetchStopListFromGitHub, 10 * 60 * 1000);
+
+// ФУНКЦИЯ ДЛЯ ПОЛУЧЕНИЯ СТОП-ЛИСТА С GITHUB
+async function fetchStopListFromGitHub() {
+    console.log("🔄 Синхронизация стоп-листа...");
+    try {
+        const timestamp = new Date().getTime();
+        const response = await fetch(`stoplist.json?v=${timestamp}`);
+
+        if (response.ok) {
+            const githubStopList = await response.json();
+            if (Array.isArray(githubStopList)) {
+                console.log("✅ Стоп-лист синхронизирован:", githubStopList);
+                stopList = githubStopList;
+                renderMenu();
+            }
+        }
+    } catch (e) {
+        console.log("ℹ️ Ожидание создания стоп-листа...");
+    }
+}
+
 function showHistoryView() {
     hapticImpact('medium');
     const historyView = document.getElementById('history-view');
@@ -543,12 +566,11 @@ function showHistoryView() {
 
     let history = JSON.parse(localStorage.getItem('order_history') || '[]');
 
-    // Автообновление статусов (через 75 минут после создания)
     const now = Date.now();
     let updated = false;
     history = history.map(order => {
         if (order.status === 'pending' && order.timestamp) {
-            const elapsed = (now - order.timestamp) / 1000 / 60; // минуты
+            const elapsed = (now - order.timestamp) / 1000 / 60;
             if (elapsed >= 75) {
                 order.status = 'delivered';
                 updated = true;
@@ -566,9 +588,8 @@ function showHistoryView() {
     } else {
         history.forEach((order, index) => {
             const item = document.createElement('div');
-            item.className = 'history-item';
+            item.className = 'history-card-v2';
 
-            // Определяем статус
             const statusMap = {
                 'pending': { text: '⏳ ОЖИДАЕТ', color: '#FF9500', bg: 'rgba(255, 149, 0, 0.1)' },
                 'accepted': { text: '✅ ПРИНЯТ', color: '#34C759', bg: 'rgba(52, 199, 89, 0.1)' },
@@ -577,8 +598,6 @@ function showHistoryView() {
             };
 
             const status = statusMap[order.status || 'pending'];
-
-            // Формируем список позиций
             const itemsList = order.itemsDetails ? order.itemsDetails.map(i =>
                 `<div style="display:flex; justify-content:space-between; font-size:12px; margin:6px 0; border-bottom:1px dashed var(--border-color); padding-bottom:4px;">
                     <span style="opacity:0.8;">${i.name}</span>
@@ -589,29 +608,20 @@ function showHistoryView() {
             item.innerHTML = `
                 <div style="display:flex; justify-content:space-between; align-items:start; margin-bottom: 12px;">
                     <div>
-                        <div style="font-weight:800; font-size:16px;">Заказ ${order.id}</div>
+                        <div style="font-weight:900; font-size:17px;">Заказ ${order.id}</div>
                         <div style="font-size:11px; opacity:0.5; margin-top:2px;">${order.date}</div>
                     </div>
                     <div style="text-align:right;">
-                        <div style="font-size:18px; font-weight:900; color:var(--accent-color);">${order.totalSum} ₽</div>
-                        <div class="status-badge" style="color:${status.color}; background:${status.bg}; display:inline-block; margin-top:5px;">${status.text}</div>
+                        <div style="font-size:19px; font-weight:950; color:var(--accent-color);">${order.totalSum || 0} ₽</div>
+                        <div class="status-badge-v2" style="color:${status.color}; background:${status.bg}; display:inline-block; margin-top:5px;">${status.text}</div>
                     </div>
                 </div>
                 
-                <div style="background: rgba(255,255,255,0.03); border-radius:12px; padding:10px; margin: 10px 0;">
+                <div style="background: rgba(255,255,255,0.03); border-radius:12px; padding:12px; margin: 10px 0;">
                     ${itemsList}
-                    margin-top:12px; 
-                    padding:12px; 
-                    background:var(--accent-color); 
-                    color:var(--bg-color); 
-                    border:none; 
-                    border-radius:12px; 
-                    font-weight:800; 
-                    font-size:12px;
-                    cursor:pointer;
-                    text-transform:uppercase;
-                    letter-spacing:0.5px;
-                ">
+                </div>
+
+                <button class="reorder-btn-v2" onclick="reorderFromHistory(${index})">
                     🔄 ПОВТОРИТЬ ЗАКАЗ
                 </button>
             `;
