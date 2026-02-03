@@ -245,9 +245,19 @@ function updateFinalBtn() {
         const [id, size] = k.split('_'), item = ALL_ITEMS.find(x => x.id === id);
         if (item) s += (size ? item.variants.find(v => v.s == size).p : item.price) * cart[k];
     }
-    const warn = document.getElementById('min-order-warn'), fb = document.getElementById('final-btn'), ok = s >= MIN_ORDER_SUM;
-    if (warn) { warn.style.display = ok ? 'none' : 'block'; if (!ok) document.getElementById('min-sum-diff').innerText = MIN_ORDER_SUM - s; }
-    if (fb) { fb.style.opacity = ok ? '1' : '0.5'; fb.style.pointerEvents = ok ? 'auto' : 'none'; const fee = (deliveryMode === 'delivery' && s < FREE_DELIVERY_THRESHOLD) ? FIXED_DELIVERY_FEE : 0; fb.innerHTML = `ЗАКАЗАТЬ: ${s + fee} ₽`; }
+    const warn = document.getElementById('min-order-warn'), fb = document.getElementById('final-btn');
+    const ok = (deliveryMode === 'pickup') || (s >= MIN_ORDER_SUM);
+
+    if (warn) {
+        warn.style.display = ok ? 'none' : 'block';
+        if (!ok) document.getElementById('min-sum-diff').innerText = MIN_ORDER_SUM - s;
+    }
+    if (fb) {
+        fb.style.opacity = ok ? '1' : '0.5';
+        fb.style.pointerEvents = ok ? 'auto' : 'none';
+        const fee = (deliveryMode === 'delivery' && s < FREE_DELIVERY_THRESHOLD) ? FIXED_DELIVERY_FEE : 0;
+        fb.innerHTML = `ЗАКАЗАТЬ: ${s + fee} ₽`;
+    }
 }
 
 function showAddressView() { hapticImpact('heavy'); document.getElementById('address-view').classList.add('active'); updateFinalBtn(); }
