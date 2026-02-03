@@ -39,29 +39,33 @@ function checkStopList() {
 }
 
 function mergeHistory(cloudHistory) {
-    let localHistory = JSON.parse(localStorage.getItem('order_history') || '[]');
+    if (!Array.isArray(cloudHistory)) return;
+    try {
+        let localHistory = [];
+        try {
+            localHistory = JSON.parse(localStorage.getItem('order_history') || '[]');
+            if (!Array.isArray(localHistory)) localHistory = [];
+        } catch (e) { localHistory = []; }
 
-    // Превращаем облачные данные в формат нашего приложения
-    const formattedCloud = cloudHistory.map(ch => ({
-        id: ch.id,
-        totalSum: ch.sum,
-        status: ch.status.toLowerCase() === 'paid' ? 'accepted' : ch.status,
-        date: ch.date,
-        itemsDetails: null, // Детали блюд в URL не влезут, но заголовок будет
-        isCloud: true
-    }));
+        const formattedCloud = cloudHistory.map(ch => ({
+            id: String(ch.id || 'N/A'),
+            totalSum: parseInt(ch.sum || 0),
+            status: String(ch.status || 'pending').toLowerCase() === 'paid' ? 'accepted' : String(ch.status || 'pending'),
+            date: String(ch.date || ''),
+            itemsDetails: null,
+            isCloud: true
+        }));
 
-    // Добавляем только те заказы, которых нет локально
-    const localIds = new Set(localHistory.map(o => o.id));
-    formattedCloud.forEach(order => {
-        if (!localIds.has(order.id)) {
-            localHistory.unshift(order); // Добавляем в начало
-        }
-    });
+        const localIds = new Set(localHistory.map(o => o.id));
+        formattedCloud.forEach(order => {
+            if (!localIds.has(order.id)) {
+                localHistory.unshift(order);
+            }
+        });
 
-    // Сортируем по ID (или дате) и сохраняем
-    localHistory.sort((a, b) => b.id.localeCompare(a.id));
-    localStorage.setItem('order_history', JSON.stringify(localHistory.slice(0, 20))); // Храним только последние 20
+        localHistory.sort((a, b) => String(b.id).localeCompare(String(a.id)));
+        localStorage.setItem('order_history', JSON.stringify(localHistory.slice(0, 20)));
+    } catch (e) { console.error("Merge error:", e); }
 }
 let deliveryMode = 'delivery';
 let currentDeliveryFee = 99;
@@ -576,28 +580,35 @@ function saveOrderToLocalHistory(order) {
 setInterval(fetchStopListFromGitHub, 5 * 60 * 1000);
 // --- ЛИЧНЫЙ КАБИНЕТ (ИСТОРИЯ ЗАКАЗОВ) ---
 function showHistoryView() {
-    hapticImpact('medium');
-    const historyView = document.getElementById('history-view');
-    const list = document.getElementById('history-list');
-    list.innerHTML = '';
+    try {
+        hapticImpact('medium');
+        const historyView = document.getElementById('history-view');
+        const list = document.getElementById('history-list');
+        if (!historyView || !list) return;
 
-    let history = JSON.parse(localStorage.getItem('order_history') || '[]');
+        list.innerHTML = '';
 
-    // Автообновление статусов
-    const now = Date.now();
-    let updated = false;
-    history = history.map(order => {
-        if (order.status === 'pending' && order.timestamp) {
-            const elapsed = (now - order.timestamp) / 1000 / 60;
-            if (elapsed >= 75) {
-                order.status = 'delivered';
-                updated = true;
+        let history = [];
+        try {
+            history = JSON.parse(localStorage.getItem('order_history') || '[]');
+            if (!Array.isArray(history)) history = [];
+        } catch (e) { history = []; }
+
+        const now = Date.now();
+        let updated = false;
+        history = history.map(order => {
+            if (order && order.status === 'pending' && order.timestamp) {
+                const elapsed = (now - order.timestamp) / 1000 / 60;
+                if (elapsed >= 75) {
+                    order.status = 'delivered';
+                    updated = true;
+                }
             }
-        }
-        return order;
-    });
+            return order;
+        }).filter(o => o !== null);
 
-    if (updated) localStorage.setItem('order_history', JSON.stringify(history));
+        if (updated) localStorage.setItem('order_history', JSON.stringify(history));
+    } catch (e) { console.error("History view error:", e); }
 
     if (history.length === 0) {
         list.innerHTML = '<p style="text-align:center; padding: 40px 20px; opacity:0.5; font-size:14px;">📦 У вас еще нет заказов...</p>';
