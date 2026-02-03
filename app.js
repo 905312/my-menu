@@ -14,15 +14,55 @@ let currentCategory = "🍕 Пицца";
 let searchTerm = "";
 let stopList = [];
 
-// Считываем стоп-лист из параметров URL (?stop=p1,b2)
+// Считываем стоп-лист и ОБЛАЧНУЮ историю из параметров URL
 function checkStopList() {
-    const params = new URLSearchParams(window.location.search);
-    const stopStr = params.get('stop');
-    if (stopStr) {
-        stopList = stopStr.split(',');
+    const urlParams = new URLSearchParams(window.location.search);
+    const stop = urlParams.get('stop');
+    if (stop) {
+        stopList = stop.split(',');
+        console.log("📍 Загружен стоп-лист:", stopList);
+    }
+
+    // ЛОГИКА ОБЛАЧНОЙ ИСТОРИИ (Синхронизация между устройствами)
+    const cloudHistoryRaw = urlParams.get('h');
+    if (cloudHistoryRaw) {
+        try {
+            const cloudHistory = JSON.parse(decodeURIComponent(cloudHistoryRaw));
+            if (Array.isArray(cloudHistory)) {
+                console.log("☁️ Получена история из облака:", cloudHistory);
+                mergeHistory(cloudHistory);
+            }
+        } catch (e) {
+            console.error("❌ Ошибка парсинга облачной истории:", e);
+        }
     }
 }
-checkStopList();
+
+function mergeHistory(cloudHistory) {
+    let localHistory = JSON.parse(localStorage.getItem('order_history') || '[]');
+
+    // Превращаем облачные данные в формат нашего приложения
+    const formattedCloud = cloudHistory.map(ch => ({
+        id: ch.id,
+        totalSum: ch.sum,
+        status: ch.status.toLowerCase() === 'paid' ? 'accepted' : ch.status,
+        date: ch.date,
+        itemsDetails: null, // Детали блюд в URL не влезут, но заголовок будет
+        isCloud: true
+    }));
+
+    // Добавляем только те заказы, которых нет локально
+    const localIds = new Set(localHistory.map(o => o.id));
+    formattedCloud.forEach(order => {
+        if (!localIds.has(order.id)) {
+            localHistory.unshift(order); // Добавляем в начало
+        }
+    });
+
+    // Сортируем по ID (или дате) и сохраняем
+    localHistory.sort((a, b) => b.id.localeCompare(a.id));
+    localStorage.setItem('order_history', JSON.stringify(localHistory.slice(0, 20))); // Храним только последние 20
+}
 let deliveryMode = 'delivery';
 let currentDeliveryFee = 99;
 const FIXED_DELIVERY_FEE = 99;
@@ -121,7 +161,7 @@ function toggleTheme() {
 }
 
 function init() {
-    console.log("RESTO PREMIUM v2.12 Loaded");
+    console.log("RESTO PREMIUM Loaded");
     initTheme();
     checkStopList(); // Берем данные из URL (как первичные)
 
@@ -537,27 +577,7 @@ function saveOrderToLocalHistory(order) {
 
 // Проверяем обновления каждые 10 минут
 setInterval(fetchStopListFromGitHub, 10 * 60 * 1000);
-
-// ФУНКЦИЯ ДЛЯ ПОЛУЧЕНИЯ СТОП-ЛИСТА С GITHUB
-async function fetchStopListFromGitHub() {
-    console.log("🔄 Синхронизация стоп-листа...");
-    try {
-        const timestamp = new Date().getTime();
-        const response = await fetch(`stoplist.json?v=${timestamp}`);
-
-        if (response.ok) {
-            const githubStopList = await response.json();
-            if (Array.isArray(githubStopList)) {
-                console.log("✅ Стоп-лист синхронизирован:", githubStopList);
-                stopList = githubStopList;
-                renderMenu();
-            }
-        }
-    } catch (e) {
-        console.log("ℹ️ Ожидание создания стоп-листа...");
-    }
-}
-
+// --- ЛИЧНЫЙ КАБИНЕТ (ИСТОРИЯ ЗАКАЗОВ) ---
 function showHistoryView() {
     hapticImpact('medium');
     const historyView = document.getElementById('history-view');
@@ -566,6 +586,7 @@ function showHistoryView() {
 
     let history = JSON.parse(localStorage.getItem('order_history') || '[]');
 
+    // Автообновление статусов
     const now = Date.now();
     let updated = false;
     history = history.map(order => {
@@ -579,9 +600,7 @@ function showHistoryView() {
         return order;
     });
 
-    if (updated) {
-        localStorage.setItem('order_history', JSON.stringify(history));
-    }
+    if (updated) localStorage.setItem('order_history', JSON.stringify(history));
 
     if (history.length === 0) {
         list.innerHTML = '<p style="text-align:center; padding: 40px 20px; opacity:0.5; font-size:14px;">📦 У вас еще нет заказов...</p>';
@@ -616,19 +635,15 @@ function showHistoryView() {
                         <div class="status-badge-v2" style="color:${status.color}; background:${status.bg}; display:inline-block; margin-top:5px;">${status.text}</div>
                     </div>
                 </div>
-                
                 <div style="background: rgba(255,255,255,0.03); border-radius:12px; padding:12px; margin: 10px 0;">
                     ${itemsList}
                 </div>
-
                 <button class="reorder-btn-v2" onclick="reorderFromHistory(${index})">
                     🔄 ПОВТОРИТЬ ЗАКАЗ
-                </button>
-            `;
+                </button>`;
             list.appendChild(item);
         });
     }
-
     historyView.classList.add('active');
 }
 
