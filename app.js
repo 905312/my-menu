@@ -285,7 +285,7 @@ function finalizeOrder() {
     for (let k in cart) for (let i = 0; i < cart[k]; i++) res.items.push(k);
     if (deliveryMode === 'delivery') {
         const c = document.getElementById('f-city').value.trim(), st = document.getElementById('f-street').value.trim(), h = document.getElementById('f-house').value.trim(), a = document.getElementById('f-apt').value.trim(), ent = document.getElementById('f-ent').value.trim(), fl = document.getElementById('f-floor').value.trim(), cd = document.getElementById('f-code').value.trim();
-        if (!c || !st || !h || !a) { tg.showAlert("Заполните адрес!"); return; }
+        if (!c || !st || !h || !a || !ent || !fl) { tg.showAlert("Пожалуйста, заполните все поля адреса со звездочкой (*)"); return; }
         let addr = `${c}, ул. ${st}, д. ${h}, кв. ${a}`;
         if (ent) addr += `, под. ${ent}`; if (fl) addr += `, эт. ${fl}`; if (cd) addr += `, код ${cd}`;
         res.address = addr; res.delivery_price = (cartSum.innerText.replace(/\D/g, '') < FREE_DELIVERY_THRESHOLD ? FIXED_DELIVERY_FEE : 0);
